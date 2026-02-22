@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  password            String?
+  mobile              String?
+  role                String               @default("user") // "user", "deliveryBoy", "admin"
+  image               String?
+  latitude            Float?               
+  longitude           Float?
+  socketId            String?
+  isOnline            Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  orders              Order[]              @relation("UserOrders")
+  assignedOrders      Order[]              @relation("AssignedOrders")
+  broadcastedTo       DeliveryAssignment[] @relation("BroadcastedToUsers")
+  assignedAssignments DeliveryAssignment[] @relation("AssignedUser")
+  messages            Message[]            @relation("UserMessages")
+}
+
+model Grocery {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  price     String
+  unit      String
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id                      String              @id @default(cuid())
+  userId                  String
+  user                    User                @relation("UserOrders", fields: [userId], references: [id])
+  paymentMethod           String              @default("cod") // "cod", "online"
+  isPaid                  Boolean             @default(false)
+  totalAmount             Float
+  status                  String              @default("pending") // "pending", "out of delivery", "delivered"
+  deliveryOtp             String?
+  deliveryOtpVerification Boolean             @default(false)
+  deliveredAt             DateTime?
+  addressFullName         String?
+  addressMobile           String?
+  addressCity             String?
+  addressState            String?
+  addressPincode          String?
+  addressFullAddress      String?
+  addressLatitude         Float?
+  addressLongitude        Float?
+  assignedDeliveryBoyId   String?
+  assignedDeliveryBoy     User?               @relation("AssignedOrders", fields: [assignedDeliveryBoyId], references: [id])
+  
+  items                   OrderItem[]
+  assignment              DeliveryAssignment? 
+  messages                Message[]
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  groceryId String
+  grocery   Grocery @relation(fields: [groceryId], references: [id])
+  name      String
+  price     String
+  unit      String
+  image     String
+  quantity  Int
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String
+  order     Order    @relation(fields: [roomId], references: [id])
+  text      String
+  senderId  String
+  user      User     @relation("UserMessages", fields: [senderId], references: [id])
+  time      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryAssignment {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  order        Order    @relation(fields: [orderId], references: [id])
+  status       String   @default("brodcasted") // Keeping typo from original mongoose "brodcasted"
+  acceptedAt   DateTime?
+  
+  assignedToId String?
+  assignedTo   User?    @relation("AssignedUser", fields: [assignedToId], references: [id])
+
+  broadcastedTo User[]  @relation("BroadcastedToUsers")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
