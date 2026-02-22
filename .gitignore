@@ -9,3 +9,5 @@ build/
 *.log
 coverage/
 .vscode/
+.vercel
+.env*.local
