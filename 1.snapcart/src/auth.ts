@@ -22,16 +22,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } })
         if (!user) {
           console.log("Authorize failed: user does not exist")
-          throw new Error("user does not exist")
+          return null
         }
         if (!user.password) {
           console.log("Authorize failed: no password found (logged in via Google previously?)")
-          throw new Error("incorrect password") // Handled if user logged in via Google previously
+          return null // Handled if user logged in via Google previously
         }
         const isMatch = await bcrypt.compare(password, user.password)
         if (!isMatch) {
           console.log("Authorize failed: incorrect password")
-          throw new Error("incorrect password")
+          return null
         }
         console.log("Authorize success:", { id: user.id, email: user.email, role: user.role })
         return {
