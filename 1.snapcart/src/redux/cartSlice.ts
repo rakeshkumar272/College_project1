@@ -8,8 +8,8 @@ interface IGrocery {
    unit: string,
    quantity: number,
    image: string,
-   createdAt?: Date,
-   updatedAt?: Date
+   createdAt?: string,
+   updatedAt?: string
 }
 interface ICartSlice {
    cartData: IGrocery[],
