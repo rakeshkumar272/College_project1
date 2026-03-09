@@ -25,9 +25,9 @@ function Nav({ user }: { user: IUser }) {
     const profileDropDown = useRef<HTMLDivElement>(null)
     const [searchBarOpen, setSearchBarOpen] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
-    const {cartData}=useSelector((state:RootState)=>state.cart)
-    const [search,setSearch]=useState("")
-    const router=useRouter()
+    const { cartData } = useSelector((state: RootState) => state.cart)
+    const [search, setSearch] = useState("")
+    const router = useRouter()
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (profileDropDown.current && !profileDropDown.current.contains(e.target as Node)) {
@@ -40,16 +40,16 @@ function Nav({ user }: { user: IUser }) {
 
 
 
-    const handleSearch=(e:FormEvent)=>{
-e.preventDefault()
-const query=search.trim()
-if(!query){
-    return  router.push("/")
-}
+    const handleSearch = (e: FormEvent) => {
+        e.preventDefault()
+        const query = search.trim()
+        if (!query) {
+            return router.push("/")
+        }
 
-router.push(`/?q=${encodeURIComponent(query)}`)
-setSearch("")
-setSearchBarOpen(false)
+        router.push(`/?q=${encodeURIComponent(query)}`)
+        setSearch("")
+        setSearchBarOpen(false)
     }
 
     const sideBar = menuOpen ? createPortal(
@@ -83,11 +83,11 @@ setSearchBarOpen(false)
                     <Link href={"/admin/view-grocery"} className='flex items-center gap-3 p-3 rounded-lg bg-white/10 hover:bg-white/20 hover:pl-4 transition-all'><Boxes className='w-5 h-5' /> view Grocery</Link>
                     <Link href={"/admin/manage-orders"} className='flex items-center gap-3 p-3 rounded-lg bg-white/10 hover:bg-white/20 hover:pl-4 transition-all'><ClipboardCheck className='w-5 h-5' /> Manage Orders</Link>
                 </div>
- <div className='my-5 border-t border-white/20'></div>
- <div className='flex items-center gap-3 text-red-300 font-semibold mt-auto hover:bg-red-500/20 p-3 rounded-lg transition-all' onClick={async ()=>await signOut({callbackUrl:"/"})}>
-    <LogOut className='w-5 h-5 text-red-300'/>
-    Logout
- </div>
+                <div className='my-5 border-t border-white/20'></div>
+                <div className='flex items-center gap-3 text-red-300 font-semibold mt-auto hover:bg-red-500/20 p-3 rounded-lg transition-all' onClick={async () => await signOut({ callbackUrl: "/" })}>
+                    <LogOut className='w-5 h-5 text-red-300' />
+                    Logout
+                </div>
             </motion.div>
         </AnimatePresence>,
         document.body
@@ -98,14 +98,14 @@ setSearchBarOpen(false)
         <div className='w-[95%] fixed top-4 left-1/2 -translate-x-1/2 bg-linear-to-r from-green-500 to-green-700 rounded-2xl shadow-lg shadow-black/30 flex justify-between items-center h-20 px-4 md:px-8 z-50'>
 
             <Link href={"/"} className='text-white font-extrabold text-2xl sm:text-3xl tracking-wide hover:scale-105 transition-transform'>
-                Snapcart
+                SpeedyMart
             </Link>
             {user.role == "user" && <form className='hidden md:flex items-center bg-white rounded-full px-4 py-2 w-1/2 max-w-lg shadow-md' onSubmit={handleSearch}>
                 <Search className='text-gray-500 w-5 h-5 mr-2' />
-                <input type="text" placeholder='Search groceries...' className='w-full outline-none text-gray-700 placeholder-gray-400' 
-                value={search}
-                onChange={(e)=>setSearch(e.target.value)}
-                
+                <input type="text" placeholder='Search groceries...' className='w-full outline-none text-gray-700 placeholder-gray-400'
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+
                 />
             </form>}
 
@@ -188,8 +188,8 @@ setSearchBarOpen(false)
                             >
                                 <Search className='text-gray-500 w-5 h-5 mr-2' />
                                 <form className='grow' onSubmit={handleSearch}>
-                                    <input type="text" className='w-full outline-none text-gray-700' placeholder='search groceries...'  value={search}
-                onChange={(e)=>setSearch(e.target.value)}/>
+                                    <input type="text" className='w-full outline-none text-gray-700' placeholder='search groceries...' value={search}
+                                        onChange={(e) => setSearch(e.target.value)} />
                                 </form>
                                 <button onClick={() => setSearchBarOpen(false)}>
                                     <X className='text-gray-500 w-5 h-5' />

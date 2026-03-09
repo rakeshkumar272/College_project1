@@ -26,16 +26,14 @@ interface IOrder {
   isPaid: boolean
   totalAmount: number,
   paymentMethod: "cod" | "online"
-  address: {
-    fullName: string,
-    mobile: string,
-    city: string,
-    state: string,
-    pincode: string,
-    fullAddress: string,
-    latitude: number,
-    longitude: number
-  }
+  addressFullName?: string,
+  addressMobile?: string,
+  addressCity?: string,
+  addressState?: string,
+  addressPincode?: string,
+  addressFullAddress?: string,
+  addressLatitude?: number,
+  addressLongitude?: number,
   assignment?: string
   assignedDeliveryBoy?: any
   status: "pending" | "out of delivery" | "delivered",

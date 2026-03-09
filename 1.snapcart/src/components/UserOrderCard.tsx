@@ -25,19 +25,17 @@ interface IOrder {
     isPaid: boolean
     totalAmount: number,
     paymentMethod: "cod" | "online"
-    address: {
-        fullName: string,
-        mobile: string,
-        city: string,
-        state: string,
-        pincode: string,
-        fullAddress: string,
-        latitude: number,
-        longitude: number
-    }
+    addressFullName?: string,
+    addressMobile?: string,
+    addressCity?: string,
+    addressState?: string,
+    addressPincode?: string,
+    addressFullAddress?: string,
+    addressLatitude?: number,
+    addressLongitude?: number,
     assignment?: string
     assignedDeliveryBoy?: any
-    status: "pending" | "out of delivery" | "delivered",
+    status: "pending" | "out of delivery" | "delivered" | "canceled",
     createdAt?: Date
     updatedAt?: Date
 }
@@ -67,6 +65,55 @@ function UserOrderCard({ order }: { order: IOrder }) {
         })
         return () => socket.off("order-status-update")
     }, [])
+
+    const [cancelTimeLeft, setCancelTimeLeft] = useState(0)
+    const [modifyTimeLeft, setModifyTimeLeft] = useState(0)
+    const [isCancelling, setIsCancelling] = useState(false)
+
+    useEffect(() => {
+        if (!order.createdAt || status !== "pending") return;
+
+        const createdTime = new Date(order.createdAt).getTime();
+
+        const updateTimers = () => {
+            const now = new Date().getTime();
+            const timeDiff = Math.floor((now - createdTime) / 1000); // seconds passed
+
+            const cancelWindow = 60; // 1 minute
+            const modifyWindow = 120; // 2 minutes
+
+            setCancelTimeLeft(Math.max(0, cancelWindow - timeDiff));
+            setModifyTimeLeft(Math.max(0, modifyWindow - timeDiff));
+        }
+
+        updateTimers(); // Initial call
+        const interval = setInterval(updateTimers, 1000);
+
+        return () => clearInterval(interval);
+    }, [order.createdAt, status]);
+
+    const handleCancelOrder = async (orderId: string | undefined) => {
+        if (!orderId) return;
+        if (!confirm("Are you sure you want to cancel this order?")) return;
+
+        setIsCancelling(true);
+        try {
+            const res = await fetch(`/api/user/order/${orderId}/cancel`, { method: "POST" })
+            if (res.ok) {
+                setStatus("canceled")
+                alert("Order canceled successfully");
+            } else {
+                const data = await res.json()
+                alert(data.message || "Failed to cancel order");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred");
+        } finally {
+            setIsCancelling(false);
+        }
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -126,8 +173,48 @@ function UserOrderCard({ order }: { order: IOrder }) {
 
                 <div className='flex items-center gap-2 text-gray-700 text-sm'>
                     <MapPin size={16} className="text-green-600" />
-                    <span className='truncate'>{order.address.fullAddress}</span>
+                    <span className='truncate'>{order.addressFullAddress}</span>
                 </div>
+
+                {/* Cancel and Modify Action Windows */}
+                {status == "pending" && (
+                    <div className='bg-red-50 border border-red-100 rounded-xl p-3 flex flex-col sm:flex-row gap-3 items-center justify-between'>
+                        <div className='text-xs text-gray-600'>
+                            <p className='font-semibold text-gray-800 mb-1'>Order Actions</p>
+                            {cancelTimeLeft > 0 || modifyTimeLeft > 0 ? (
+                                <p>
+                                    Cancel window: {cancelTimeLeft > 0 ? `${Math.floor(cancelTimeLeft / 60)}:${String(cancelTimeLeft % 60).padStart(2, '0')}` : 'Expired'} •
+                                    Modify window: {modifyTimeLeft > 0 ? `${Math.floor(modifyTimeLeft / 60)}:${String(modifyTimeLeft % 60).padStart(2, '0')}` : 'Expired'}
+                                </p>
+                            ) : (
+                                <p>Time windows for Cancellation and Modificaiton have expired.</p>
+                            )}
+                        </div>
+                        <div className='flex gap-2 w-full sm:w-auto'>
+                            <button
+                                disabled={cancelTimeLeft === 0 || isCancelling}
+                                onClick={() => handleCancelOrder(order.id || order._id)}
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition ${cancelTimeLeft > 0 && !isCancelling
+                                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                            >
+                                {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+                            </button>
+                            <button
+                                disabled={modifyTimeLeft === 0}
+                                onClick={() => router.push(`/user/checkout?addItemsTo=${order.id || order._id}`)}
+                                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition ${modifyTimeLeft > 0
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                            >
+                                Add More Items
+                            </button>
+                        </div>
+                    </div>
+                )}
+
 
                 <div className='border-t border-gray-200 pt-3'>
                     <button

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from "motion/react"
 import { ArrowLeft, Building, CreditCard, CreditCardIcon, Home, Loader2, LocateFixed, MapPin, Navigation, Phone, Search, Truck, User } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/redux/store'
 
@@ -89,13 +89,16 @@ function Checkout() {
         fetchAddress()
     }, [position])
 
+    const searchParams = useSearchParams();
+    const addItemsToOrderId = searchParams.get('addItemsTo');
+
     const handleCod = async () => {
         if (!position) {
             return null
         }
         try {
-            const result = await axios.post("/api/user/order", {
-                userId: userData?._id,
+            const payload = {
+                userId: userData?.id || userData?._id,
                 items: cartData.map(item => (
                     {
                         grocery: item._id,
@@ -118,11 +121,21 @@ function Checkout() {
                     longitude: position[1]
                 },
                 paymentMethod
-            })
+            };
+
+            if (addItemsToOrderId) {
+                // Modifying an existing order
+                await axios.post(`/api/user/order/${addItemsToOrderId}/add-items`, payload);
+                alert("Items successfully added to your existing order!");
+            } else {
+                // Normal checkout
+                await axios.post("/api/user/order", payload);
+            }
 
             router.push("/user/order-success")
         } catch (error) {
             console.log(error)
+            alert("Failed to process order. Check console for details.");
         }
     }
 
@@ -132,7 +145,7 @@ function Checkout() {
         }
         try {
             const result = await axios.post("/api/user/payment", {
-                userId: userData?._id,
+                userId: userData?.id || userData?._id,
                 items: cartData.map(item => (
                     {
                         grocery: item._id,
@@ -257,16 +270,16 @@ function Checkout() {
                         <button
                             onClick={() => setPaymentMethod("online")}
                             className={`flex items-center gap-3 w-full border rounded-lg p-3 transition-all ${paymentMethod === "online"
-                                    ? "border-green-600 bg-green-50 shadow-sm"
-                                    : "hover:bg-gray-50"
+                                ? "border-green-600 bg-green-50 shadow-sm"
+                                : "hover:bg-gray-50"
                                 }`}>
                             <CreditCardIcon className='text-green-600' /><span className='font-medium text-gray-700'>Pay Online (stripe)</span>
                         </button>
                         <button
                             onClick={() => setPaymentMethod("cod")}
                             className={`flex items-center gap-3 w-full border rounded-lg p-3 transition-all ${paymentMethod === "cod"
-                                    ? "border-green-600 bg-green-50 shadow-sm"
-                                    : "hover:bg-gray-50"
+                                ? "border-green-600 bg-green-50 shadow-sm"
+                                : "hover:bg-gray-50"
                                 }`}>
                             <Truck className='text-green-600' /><span className='font-medium text-gray-700'>Cash on Delivery</span>
                         </button>

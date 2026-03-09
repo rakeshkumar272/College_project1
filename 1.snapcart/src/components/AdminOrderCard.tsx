@@ -25,16 +25,14 @@ interface IOrder {
     isPaid: boolean
     totalAmount: number,
     paymentMethod: "cod" | "online"
-    address: {
-        fullName: string,
-        mobile: string,
-        city: string,
-        state: string,
-        pincode: string,
-        fullAddress: string,
-        latitude: number,
-        longitude: number
-    }
+    addressFullName?: string,
+    addressMobile?: string,
+    addressCity?: string,
+    addressState?: string,
+    addressPincode?: string,
+    addressFullAddress?: string,
+    addressLatitude?: number,
+    addressLongitude?: number,
     assignment?: string
     assignedDeliveryBoy?: any
     status: "pending" | "out of delivery" | "delivered",
@@ -98,15 +96,15 @@ function AdminOrderCard({ order }: { order: IOrder }) {
                     <div className='mt-3 space-y-1 text-gray-700 text-sm'>
                         <p className='flex items-center gap-2 font-semibold'>
                             <User size={16} className='text-green-600' />
-                            <span>{order?.address.fullName}</span>
+                            <span>{order?.addressFullName}</span>
                         </p>
                         <p className='flex items-center gap-2 font-semibold'>
                             <Phone size={16} className='text-green-600' />
-                            <span>{order?.address.mobile}</span>
+                            <span>{order?.addressMobile}</span>
                         </p>
                         <p className='flex items-center gap-2 font-semibold'>
                             <MapPin size={16} className='text-green-600' />
-                            <span>{order?.address.fullAddress}</span>
+                            <span>{order?.addressFullAddress}</span>
                         </p>
 
                     </div>

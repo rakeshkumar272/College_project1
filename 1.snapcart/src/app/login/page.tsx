@@ -55,7 +55,7 @@ function Login() {
           duration: 0.6
         }}
         className='text-4xl font-extrabold text-green-700 mb-2'>Welcome Back</motion.h1>
-      <p className='text-gray-600 mb-8 flex items-center'>Login To Snapcart <Leaf className='w-5 h-5 text-green-600' /></p>
+      <p className='text-gray-600 mb-8 flex items-center'>Login To SpeedyMart <Leaf className='w-5 h-5 text-green-600' /></p>
       <motion.form
         onSubmit={handleLogin}
         initial={{

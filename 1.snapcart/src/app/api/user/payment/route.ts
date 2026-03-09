@@ -25,12 +25,26 @@ export async function POST(req: NextRequest) {
     const newOrder = await prisma.order.create({
       data: {
         userId: userId,
-        items: items,
         paymentMethod: paymentMethod,
         totalAmount: totalAmount,
+        addressFullName: address.fullName,
+        addressMobile: address.mobile,
+        addressCity: address.city,
+        addressState: address.state,
+        addressPincode: address.pincode,
         addressLatitude: address.latitude,
         addressLongitude: address.longitude,
-        addressFullAddress: address.address
+        addressFullAddress: address.fullAddress,
+        items: {
+          create: items.map((item: any) => ({
+            groceryId: item.grocery,
+            name: item.name,
+            price: item.price.toString(),
+            unit: item.unit.toString(),
+            image: item.image,
+            quantity: Number(item.quantity)
+          }))
+        }
       }
     })
 
@@ -44,7 +58,7 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: 'inr',
             product_data: {
-              name: 'SnapCart Order Payment',
+              name: 'SpeedyMart Order Payment',
             },
             unit_amount: body.totalAmount * 100,
           },

@@ -3,13 +3,13 @@ import prisma from "@/lib/db";
 import emitEventHandler from "@/lib/emitEventHandler";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string; }>; }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params
-        const session = await auth()
-        const deliveryBoyId = session?.user?.id
+        const { id } = await params;
+        const session = await auth();
+        const deliveryBoyId = session?.user?.id;
         if (!deliveryBoyId) {
-            return NextResponse.json({ message: "unauthorize" }, { status: 400 })
+            return NextResponse.json({ message: "unauthorize" }, { status: 400 });
         }
 
         const assignment = await prisma.deliveryAssignment.findUnique({
