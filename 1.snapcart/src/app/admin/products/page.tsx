@@ -30,16 +30,17 @@ function ViewGrocery() {
     const [loading, setLoading] = useState(false)
     const [deleteLoading, setDeleteLoading] = useState(false)
     const [fillterd, setFilltered] = useState<any[]>()
-    useEffect(() => {
-        const getGroceries = async () => {
-            try {
-                const result = await axios.get("/api/admin/get-groceries")
-                setGroceries(result.data)
-                setFilltered(result.data)
-            } catch (error) {
-                console.log(error)
-            }
+    const getGroceries = async () => {
+        try {
+            const result = await axios.get("/api/admin/get-groceries")
+            setGroceries(result.data)
+            setFilltered(result.data)
+        } catch (error) {
+            console.log(error)
         }
+    }
+
+    useEffect(() => {
         getGroceries()
     }, [])
 
@@ -63,7 +64,7 @@ function ViewGrocery() {
         if (!editing) return
         try {
             const formData = new FormData()
-            formData.append("groceryId", editing?._id?.toString()!)
+            formData.append("groceryId", (editing?.id || editing?._id)?.toString()!)
             formData.append("name", editing?.name)
             formData.append("category", editing.category)
             formData.append("price", editing.price)
@@ -71,22 +72,36 @@ function ViewGrocery() {
             if (backendImage) {
                 formData.append("image", backendImage)
             }
-            const result = await axios.post("/api/admin/edit-grocery", formData)
+            const result = await axios.put("/api/admin/edit-grocery", formData)
+            await getGroceries()
+            setImagePreview(null)
+            setBackendImage(null)
+            setEditing(null)
             setLoading(false)
-            window.location.reload()
+            alert("Product updated successfully!")
         } catch (error) {
             console.log(error)
+            alert("Failed to update product.")
+            setLoading(false)
         }
     }
     const handleDelete = async () => {
-        setDeleteLoading(true)
         if (!editing) return
+        if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+        setDeleteLoading(true)
         try {
-            const result = await axios.post("/api/admin/delete-grocery", { groceryId: editing._id })
+            const result = await axios.delete("/api/admin/delete-grocery", { data: { groceryId: editing.id || editing._id } })
+            await getGroceries()
+            setImagePreview(null)
+            setBackendImage(null)
+            setEditing(null)
             setDeleteLoading(false)
-            window.location.reload()
+            alert("Product deleted successfully!")
         } catch (error) {
             console.log(error)
+            alert("Failed to delete product.")
+            setDeleteLoading(false)
         }
     }
 
@@ -104,18 +119,14 @@ function ViewGrocery() {
 
     }
     return (
-        <div className="pt-4 w-[95%] md:w-[85%] mx-auto pb-20">
+        <div className="w-full">
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4 }}
                 className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 text-center sm:text-left"
             >
-                <button
-                    onClick={() => router.push("/")}
-                    className='flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 font-semibold px-4 py-2 rounded-full transition w-full sm:w-auto'
-                ><ArrowLeft size={18} /><span>Back</span></button>
-                <h1 className='text-2xl md:text-3xl font-extrabold text-green-700 flex items-center justify-center gap-2'><Package size={28} className='text-green-600' />Manage Groceries</h1>
+                <h1 className='text-2xl font-bold text-gray-800 flex items-center justify-center gap-2'><Package size={28} className='text-green-600' />Manage Groceries</h1>
             </motion.div>
 
             <motion.form initial={{ opacity: 0, y: 10 }}
@@ -166,6 +177,7 @@ function ViewGrocery() {
             <AnimatePresence>
                 {editing && (
                     <motion.div
+                        key="edit-modal-overlay"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -173,6 +185,7 @@ function ViewGrocery() {
                     >
 
                         <motion.div
+                            key="edit-modal-panel"
                             initial={{ y: 40, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: 40, opacity: 0 }}
@@ -181,7 +194,7 @@ function ViewGrocery() {
                         >
                             <div className='flex justify-between items-center mb-4'>
                                 <h2 className='text-2xl font-bold text-green-700'>Edit Grocery</h2>
-                                <button className='text-gray-600 hover:text-red-600' onClick={() => setEditing(null)}>
+                                <button className='text-gray-600 hover:text-red-600' onClick={() => { setEditing(null); setImagePreview(null); setBackendImage(null); }}>
                                     <X size={18} />
                                 </button>
                             </div>

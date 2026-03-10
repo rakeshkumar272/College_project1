@@ -33,6 +33,10 @@ async function Home(props: {
     return <EditRoleMobile />
   }
 
+  if (user.role === "admin") {
+    redirect("/admin");
+  }
+
   const plainUser = JSON.parse(JSON.stringify(user))
 
   let groceryList: any[] = []
@@ -62,8 +66,6 @@ async function Home(props: {
       <GeoUpdater userId={plainUser.id} />
       {user.role == "user" ? (
         <UserDashboard groceryList={groceryList} />
-      ) : user.role == "admin" ? (
-        <AdminDashboard />
       ) : <DeliveryBoy />}
       <Footer />
     </>
