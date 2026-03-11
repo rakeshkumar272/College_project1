@@ -28,9 +28,10 @@ export async function POST(req: NextRequest) {
             { status: 200 }
         )
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error("REGISTRATION ERROR:", error)
         return NextResponse.json(
-            { message: `register error ${error}` },
+            { message: `Registration failed: ${error.message || error}` },
             { status: 500 }
         )
     }

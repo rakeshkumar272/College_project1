@@ -317,4 +317,10 @@ function Checkout() {
     )
 }
 
-export default Checkout
+export default function CheckoutPage() {
+    return (
+        <React.Suspense fallback={<div className="flex justify-center items-center h-[50vh]"><Loader2 className="animate-spin text-green-600" size={32} /></div>}>
+            <Checkout />
+        </React.Suspense>
+    )
+}

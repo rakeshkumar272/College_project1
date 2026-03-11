@@ -48,7 +48,7 @@ export default function AdminHeader({ setMobileSidebarOpen }: { setMobileSidebar
     const totalNotifications = counts.pendingOrdersCount + counts.pendingDeliveriesCount;
 
     return (
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-8 z-30 relative">
+        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-8 z-10 relative">
             <div className="flex items-center gap-4 flex-1">
                 {/* Mobile Sidebar Toggle */}
                 <button

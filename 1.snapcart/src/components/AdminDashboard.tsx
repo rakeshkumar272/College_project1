@@ -3,7 +3,7 @@ import AdminDashboardClient from './AdminDashboardClient'
 import prisma from '@/lib/db'
 
 async function AdminDashboard() {
-  const orders = await prisma.order.findMany()
+  const orders = await prisma.order.findMany({ include: { user: true } })
   const users = await prisma.user.findMany({ where: { role: "user" } })
   const groceries = await prisma.grocery.findMany()
 
@@ -45,11 +45,16 @@ async function AdminDashboard() {
     nextDay.setDate(nextDay.getDate() + 1)
 
 
-    const ordersCount = orders.filter((o) => new Date(o.createdAt) >= date && new Date(o.createdAt) < nextDay).length
+    const dayOrders = orders.filter((o) => new Date(o.createdAt) >= date && new Date(o.createdAt) < nextDay)
+    const ordersCount = dayOrders.length
+    const dayRevenue = dayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+    const newCustomersCount = users.filter((u) => new Date(u.createdAt) >= date && new Date(u.createdAt) < nextDay).length
 
     chartData.push({
       day: date.toLocaleDateString("en-US", { weekday: "short" }),
-      orders: ordersCount
+      orders: ordersCount,
+      revenue: dayRevenue,
+      customers: newCustomersCount
     })
 
   }
@@ -60,13 +65,15 @@ async function AdminDashboard() {
   return (
     <>
       <AdminDashboardClient
-        earning={{
+        revenueSummary={{
           today: todayRevenue,
-          sevenDays: sevenDaysRevenue,
-          total: totalRevenue
+          ordersToday: todayOrders.length,
+          pendingDeliveries: pendingDeliveries,
+          activeDeliveryPartners: users.filter((u) => u.role === "delivery" || u.role === "deliveryBoy").length
         }}
         stats={stats}
         chartData={chartData}
+        recentOrders={orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10) as any}
       />
     </>
   )

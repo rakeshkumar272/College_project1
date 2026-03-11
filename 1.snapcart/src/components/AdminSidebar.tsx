@@ -74,14 +74,16 @@ export default function AdminSidebar({
                 })}
             </nav>
 
-            <div className={`p-4 border-t border-gray-100 \${isExpanded ? 'flex' : 'hidden'} items-center gap-3`}>
+            <div className={`p-4 border-t border-gray-100 flex items-center gap-3`}>
                 <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-bold shrink-0">
                     A
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">Admin User</p>
-                    <p className="text-xs text-gray-500 truncate">admin@speedymart.com</p>
-                </div>
+                {isExpanded && (
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">Admin User</p>
+                        <p className="text-xs text-gray-500 truncate">admin@speedymart.com</p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -91,7 +93,7 @@ export default function AdminSidebar({
             <motion.aside
                 animate={{ width: isDesktopExpanded ? 240 : 80 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="hidden md:block fixed left-0 top-0 h-screen z-40 bg-white"
+                className="hidden md:block h-full z-20 bg-white shrink-0 border-r border-gray-200"
             >
                 <SidebarContent isExpanded={isDesktopExpanded} />
             </motion.aside>

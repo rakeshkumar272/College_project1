@@ -58,40 +58,38 @@ export async function POST(req: NextRequest, context: { params: Promise<{ orderI
             const availableDeliveryBoys = nearByDeliveryBoys.filter(
                 b => !busyIdSet.has(b.id)
             )
-            const candidates = availableDeliveryBoys.map(b => b.id)
+            let candidates = availableDeliveryBoys.map(b => b.id)
 
+            // FALLBACK: If no online riders are within 10km, broadcast to ALL online riders
+            // This ensures the order is visible during testing/development
             if (candidates.length === 0) {
-                await prisma.order.update({
-                    where: { id: orderId },
-                    data: { status }
-                })
-
-                await emitEventHandler("order-status-update", { orderId: order.id, status })
-
-                return NextResponse.json(
-                    { message: "there is no available Delivery boys" },
-                    { status: 200 }
-                )
+                candidates = allDeliveryBoys.map(b => b.id);
             }
+
+            // If no nearby candidates, we'll still create the assignment so it's tracked
+            // but we might want to log it or notify the admin
+            const broadcastedTo = candidates.length > 0 ? { connect: candidates.map(id => ({ id })) } : undefined
 
             const deliveryAssignment = await prisma.deliveryAssignment.create({
                 data: {
                     orderId: order.id,
                     status: "brodcasted",
-                    broadcastedTo: {
-                        connect: candidates.map(id => ({ id }))
-                    }
+                    broadcastedTo: broadcastedTo
                 },
                 include: { order: true }
             })
 
-            for (const boy of availableDeliveryBoys) {
+            const targetBoys = candidates.length > availableDeliveryBoys.length ? allDeliveryBoys : availableDeliveryBoys;
+            console.log(`Broadcasting order ${order.id} to ${targetBoys.length} boys (Fallback: ${candidates.length > availableDeliveryBoys.length})`);
+
+            for (const boy of targetBoys) {
                 if (boy.socketId) {
+                    console.log(`Emitting new-assignment to boy ${boy.name} (${boy.socketId})`);
                     await emitEventHandler("new-assignment", deliveryAssignment, boy.socketId)
                 }
             }
 
-            deliveryBoysPayload = availableDeliveryBoys.map(b => ({
+            deliveryBoysPayload = targetBoys.map(b => ({
                 id: b.id,
                 name: b.name,
                 mobile: b.mobile,

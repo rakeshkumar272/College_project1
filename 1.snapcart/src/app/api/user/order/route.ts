@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
                 addressCity: address.city,
                 addressState: address.state,
                 addressPincode: address.pincode,
-                addressLatitude: address.latitude,
-                addressLongitude: address.longitude,
+                addressLatitude: Number(address.latitude),
+                addressLongitude: Number(address.longitude),
                 addressFullAddress: address.fullAddress,
                 items: {
                     create: items.map((item: any) => ({

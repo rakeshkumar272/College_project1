@@ -46,26 +46,11 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
   }
 
   useEffect(() => {
+    // Identity is handled by GeoUpdater, but we can ensure it here too if needed
     const socket = getSocket()
-    if (!userData?._id) return
-    if (!navigator.geolocation) return
-    const watcher = navigator.geolocation.watchPosition((pos) => {
-      const lat = pos.coords.latitude
-      const lon = pos.coords.longitude
-      setDeliveryBoyLocation({
-        latitude: lat,
-        longitude: lon
-      })
-      socket.emit("update-location", {
-        userId: userData?._id,
-        latitude: lat,
-        longitude: lon
-      })
-    }, (err) => {
-      console.log(err)
-    }, { enableHighAccuracy: true })
-    return () => navigator.geolocation.clearWatch(watcher)
-  }, [userData?._id])
+    if (!userData?.id) return
+    socket.emit("identity", userData.id)
+  }, [userData?.id])
 
   useEffect((): any => {
     const socket = getSocket()
@@ -183,8 +168,8 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
             <button
               onClick={() => setIsOnline(!isOnline)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold transition-all shadow-sm ${isOnline
-                  ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
-                  : 'bg-green-600 text-white border border-green-600 hover:bg-green-700 shadow-green-200'
+                ? 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
+                : 'bg-green-600 text-white border border-green-600 hover:bg-green-700 shadow-green-200'
                 }`}
             >
               <Power size={18} />

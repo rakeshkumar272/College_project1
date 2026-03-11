@@ -34,12 +34,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 setIsMobileExpanded={setIsMobileExpanded}
                 isMobile={isMobile}
             />
-            <div
-                className={`flex flex-col flex-1 transition-all duration-200 ease-in-out w-full
-          \${isDesktopExpanded && !isMobile ? 'md:ml-[240px]' : 'md:ml-[80px]'}
-          \${isMobile ? 'ml-0' : ''}
-        `}
-            >
+            <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
                 <AdminHeader setMobileSidebarOpen={setIsMobileExpanded} />
                 <main className="flex-1 overflow-y-auto w-full p-4 lg:p-6 bg-gray-50">
                     <div className="max-w-7xl mx-auto w-full">
