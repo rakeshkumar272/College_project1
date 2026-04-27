@@ -42,7 +42,7 @@ interface IOrder {
 function AdminOrderCard({ order }: { order: IOrder }) {
     const [expanded, setExpanded] = useState(false)
     const [status, setStatus] = useState<string>("pending")
-    const statusOptions = ["pending", "out of delivery"]
+    const statusOptions = ["pending", "assigned", "out of delivery"]
 
     const updateStatus = async (orderId: string, status: string) => {
         try {
@@ -61,7 +61,7 @@ function AdminOrderCard({ order }: { order: IOrder }) {
     useEffect((): any => {
         const socket = getSocket()
         socket.on("order-status-update", (data) => {
-            if (data.orderId.toString() == order?._id!.toString()) {
+            if (data.orderId.toString() === (order?.id || order?._id)?.toString()) {
                 setStatus(data.status)
             }
         })
@@ -135,7 +135,9 @@ function AdminOrderCard({ order }: { order: IOrder }) {
                         ? "bg-green-100 text-green-700"
                         : status === "pending"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-blue-100 text-blue-700"
+                            : status === "assigned"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-blue-100 text-blue-700"
                         }`}>
                         {status}
                     </span>

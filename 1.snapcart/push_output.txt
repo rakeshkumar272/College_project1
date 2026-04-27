@@ -1,0 +1,50 @@
+git : remote: error: 
+Trace: 5b681e91b0f780cca6
+b5f3ffc50682de6fe7adfa1df
+5ea435789a29d1e203c82    
+    
+At line:1 char:1
++ git push origin main 
+2>&1 | Out-File 
+-Encoding ASCII 
+push_output.txt
++ 
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo       
+       : NotSpecified:   
+  (remote: error: ...e   
+ 203c82        :Strin    
+g) [], RemoteExcepti    
+on
+    + FullyQualifiedErro 
+   rId : NativeCommandE  
+  rror
+ 
+remote: error: See 
+https://gh.io/lfs for 
+more information.        
+remote: error: File 1.sna
+pcart/node_modules_old/@n
+ext/swc-win32-x64-msvc/ne
+xt-swc.win32-x64-msvc.nod
+e is 122.06 MB; this 
+exceeds GitHub's file 
+size limit of 100.00 MB  
+      
+remote: error: GH001: 
+Large files detected. 
+You may want to try Git 
+Large File Storage - http
+s://git-lfs.github.com.  
+      
+To https://github.com/rak
+eshkumar272/college_proje
+ct1.git
+ ! [remote rejected] 
+main -> main 
+(pre-receive hook 
+declined)
+error: failed to push 
+some refs to 'https://git
+hub.com/rakeshkumar272/co
+llege_project1.git'

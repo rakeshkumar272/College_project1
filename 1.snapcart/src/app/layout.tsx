@@ -5,6 +5,7 @@ import "./globals.css";
 import Provider from "@/Provider";
 import StoreProvider from "@/redux/StoreProvider";
 import InitUser from "@/InitUser";
+import GrocyBot from "@/components/GrocyBot";
 
 
 
@@ -26,7 +27,7 @@ export default function RootLayout({
           <StoreProvider>
 
             <InitUser />
-
+            <GrocyBot />
             {children}
           </StoreProvider>
         </Provider>

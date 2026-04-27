@@ -14,6 +14,7 @@ model User {
   password            String?
   mobile              String?
   role                String               @default("user") // "user", "deliveryBoy", "admin"
+  status              String               @default("ACTIVE") // "ACTIVE", "BLOCKED", "RESTRICTED"
   image               String?
   latitude            Float?               
   longitude           Float?
@@ -30,16 +31,33 @@ model User {
 }
 
 model Grocery {
+  id              String           @id @default(cuid())
+  name            String
+  category        String
+  price           String
+  unit            String
+  image           String
+  description     String?          
+  stockQuantity   Int?             @default(0)
+  stockUnit       String?
+  discountPercent Int?             @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  variants        GroceryVariant[]
+  orderItems      OrderItem[]
+}
+
+model GroceryVariant {
   id        String   @id @default(cuid())
-  name      String
-  category  String
-  price     String
-  unit      String
-  image     String
+  groceryId String
+  grocery   Grocery  @relation(fields: [groceryId], references: [id], onDelete: Cascade)
+  label     String   // e.g., "250g", "500g", "1kg"
+  weight    Float?   // Numeric weight value (e.g. 250, 500, 1)
+  price     Float
+  stock     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  orderItems OrderItem[]
 }
 
 model Order {

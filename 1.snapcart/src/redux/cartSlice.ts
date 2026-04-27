@@ -1,7 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface IGrocery {
-   _id: string,
+   _id: string, // Unique identifier in cart (productId-variant)
+   productId: string,
+   variant?: string, // e.g., '500g'
    name: string,
    category: string,
    price: string,
@@ -15,7 +17,8 @@ interface ICartSlice {
    cartData: IGrocery[],
    subTotal: number,
    deliveryFee: number,
-   finalTotal: number
+   finalTotal: number,
+   addItemsTo: string | null
 }
 
 
@@ -23,7 +26,8 @@ const initialState: ICartSlice = {
    cartData: [],
    subTotal: 0,
    deliveryFee: 40,
-   finalTotal: 40
+   finalTotal: 40,
+   addItemsTo: null
 }
 
 const calculateTotals = (state: ICartSlice) => {
@@ -61,6 +65,16 @@ const cartSlice = createSlice({
          state.cartData = state.cartData.filter(i => i._id !== action.payload)
          calculateTotals(state)
       },
+      setAddItemsTo: (state, action: PayloadAction<string | null>) => {
+         state.addItemsTo = action.payload;
+      },
+      clearCart: (state) => {
+         state.cartData = [];
+         state.subTotal = 0;
+         state.deliveryFee = 40;
+         state.finalTotal = 40;
+         state.addItemsTo = null;
+      },
       // To calculate totals safely inside our own extra reducers
       calculateTotals: (state) => {
          calculateTotals(state)
@@ -68,5 +82,5 @@ const cartSlice = createSlice({
    }
 })
 
-export const { addToCart, increaseQuantity, decreaseQuantity, removeFromCart } = cartSlice.actions
+export const { addToCart, increaseQuantity, decreaseQuantity, removeFromCart, setAddItemsTo, clearCart } = cartSlice.actions
 export default cartSlice.reducer

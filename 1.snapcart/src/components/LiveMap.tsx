@@ -4,8 +4,8 @@ interface ILocation {
     longitude: number
 }
 interface Iprops {
-    userLocation: ILocation
-    deliveryBoyLocation: ILocation
+    userLocation: ILocation | null
+    deliveryBoyLocation: ILocation | null
     height?: string
 }
 import L, { LatLngExpression } from "leaflet"
@@ -37,16 +37,18 @@ function LiveMap({ userLocation, deliveryBoyLocation, height = "500px" }: Iprops
         iconSize: [45, 45]
     })
 
+    const showUserLocation = userLocation && userLocation.latitude !== 0 && userLocation.longitude !== 0;
+
     const linePositions =
-        deliveryBoyLocation && userLocation
+        deliveryBoyLocation && showUserLocation
             ? [
                 [userLocation.latitude, userLocation.longitude],
                 [deliveryBoyLocation.latitude, deliveryBoyLocation.longitude]
 
             ] : []
-    const center = deliveryBoyLocation
+    const center = deliveryBoyLocation && deliveryBoyLocation.latitude !== 0
         ? [deliveryBoyLocation.latitude, deliveryBoyLocation.longitude]
-        : [userLocation.latitude, userLocation.longitude];
+        : showUserLocation ? [userLocation.latitude, userLocation.longitude] : [20.5937, 78.9629]; // Default center (India)
 
 
     return (
@@ -56,14 +58,20 @@ function LiveMap({ userLocation, deliveryBoyLocation, height = "500px" }: Iprops
                 <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userIcon}>
-                    <Popup>delivery Address</Popup>
-                </Marker>
+                
+                {showUserLocation && (
+                    <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userIcon}>
+                        <Popup>Delivery Address</Popup>
+                    </Marker>
+                )}
 
-                {deliveryBoyLocation && <Marker position={[deliveryBoyLocation.latitude, deliveryBoyLocation.longitude]} icon={deliveryBoyIcon}>
-                    <Popup>delivery Boy</Popup>
-                </Marker>}
-                <Polyline positions={linePositions as any} color='green' />
+                {deliveryBoyLocation && deliveryBoyLocation.latitude !== 0 && (
+                    <Marker position={[deliveryBoyLocation.latitude, deliveryBoyLocation.longitude]} icon={deliveryBoyIcon}>
+                        <Popup>Delivery Partner</Popup>
+                    </Marker>
+                )}
+                
+                {showUserLocation && <Polyline positions={linePositions as any} color='green' />}
             </MapContainer>
         </div>
     )

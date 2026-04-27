@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { motion } from "motion/react"
 import { ArrowLeft, Building, CreditCard, CreditCardIcon, Home, Loader2, LocateFixed, MapPin, Navigation, Phone, Search, Truck, User } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/store'
 
 
@@ -18,7 +18,8 @@ const CheckOutMap = dynamic(() => import("@/components/CheckoutMap"), { ssr: fal
 function Checkout() {
     const router = useRouter()
     const { userData } = useSelector((state: RootState) => state.user)
-    const { subTotal, deliveryFee, finalTotal, cartData } = useSelector((state: RootState) => state.cart)
+    const { subTotal, deliveryFee, finalTotal, cartData, addItemsTo } = useSelector((state: RootState) => state.cart)
+    const dispatch = useDispatch()
     const [address, setAddress] = useState({
         fullName: "",
         mobile: "",
@@ -89,8 +90,7 @@ function Checkout() {
         fetchAddress()
     }, [position])
 
-    const searchParams = useSearchParams();
-    const addItemsToOrderId = searchParams.get('addItemsTo');
+    const addItemsToOrderId = addItemsTo;
 
     const handleCod = async () => {
         if (!position) {
@@ -101,7 +101,7 @@ function Checkout() {
                 userId: userData?.id || userData?._id,
                 items: cartData.map(item => (
                     {
-                        grocery: item._id,
+                        grocery: item._id.split('-')[0],
                         name: item.name,
                         price: item.price,
                         unit: item.unit,
@@ -131,7 +131,8 @@ function Checkout() {
                 // Normal checkout
                 await axios.post("/api/user/order", payload);
             }
-
+            
+            dispatch({ type: "cart/clearCart" });
             router.push("/user/order-success")
         } catch (error) {
             console.log(error)
@@ -143,12 +144,13 @@ function Checkout() {
         if (!position) {
             return null
         }
+        
         try {
-            const result = await axios.post("/api/user/payment", {
+            const payload = {
                 userId: userData?.id || userData?._id,
                 items: cartData.map(item => (
                     {
-                        grocery: item._id,
+                        grocery: item._id.split('-')[0],
                         name: item.name,
                         price: item.price,
                         unit: item.unit,
@@ -168,7 +170,18 @@ function Checkout() {
                     longitude: position[1]
                 },
                 paymentMethod
-            })
+            };
+
+            if (addItemsToOrderId) {
+                // If appending, append directly and inform user of diff
+                await axios.post(`/api/user/order/${addItemsToOrderId}/add-items`, payload);
+                alert(`Items appended! You can pay the difference (₹${finalTotal}) to the delivery partner.`);
+                dispatch({ type: "cart/clearCart" });
+                router.push("/user/order-success");
+                return;
+            }
+
+            const result = await axios.post("/api/user/payment", payload)
             window.location.href = result.data.url
         } catch (error) {
             console.log(error)

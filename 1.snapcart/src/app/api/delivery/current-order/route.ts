@@ -12,7 +12,9 @@ export async function GET() {
         const activeAssignment = await prisma.deliveryAssignment.findFirst({
             where: {
                 assignedToId: deliveryBoyId,
-                status: "assigned"
+                status: {
+                    in: ["assigned", "out_for_delivery"]
+                }
             },
             include: {
                 order: true

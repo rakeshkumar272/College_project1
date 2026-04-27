@@ -12,7 +12,7 @@ import { decreaseQuantity, increaseQuantity, removeFromCart } from '@/redux/cart
 import { useRouter } from 'next/navigation'
 
 function CartPage() {
-    const {cartData,subTotal,finalTotal,deliveryFee}=useSelector((state:RootState)=>state.cart)
+    const {cartData, subTotal, finalTotal, deliveryFee, addItemsTo} = useSelector((state:RootState)=>state.cart)
     const dispatch=useDispatch<AppDispatch>()
     const router=useRouter()
   return (
@@ -25,8 +25,14 @@ function CartPage() {
 initial={{opacity:0,y:10}}
 animate={{opacity:1,y:0}}
 transition={{duration:0.3}}
-className='text-2xl sm:text-3xl md:text-4xl font-bold text-green-700 text-center mb-10'
->🛒 Your Shopping Cart</motion.h2>
+className='text-2xl sm:text-3xl md:text-4xl font-bold text-green-700 text-center mb-4'
+>🛒 {addItemsTo ? 'Modify Your Order' : 'Your Shopping Cart'}</motion.h2>
+
+{addItemsTo && (
+  <motion.div initial={{opacity:0}} animate={{opacity:1}} className='text-center bg-blue-50 border border-blue-200 text-blue-700 py-2 px-4 rounded-xl mb-6 mx-auto w-fit font-medium flex items-center gap-2 shadow-sm'>
+      Appending items to Order <span className='font-bold'>#{addItemsTo.slice(-6)}</span>
+  </motion.div>
+)}
 
 {cartData.length==0 ? (
 <motion.div

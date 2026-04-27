@@ -27,13 +27,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ord
             return NextResponse.json({ message: "Only pending orders can be canceled" }, { status: 400 });
         }
 
-        // Validate time limit (1 minute)
-        const ONE_MINUTE = 60 * 1000;
+        // Validate time limit (5 minutes)
+        const FIVE_MINUTES = 5 * 60 * 1000;
         const now = new Date();
         const timeDiff = now.getTime() - order.createdAt.getTime();
 
-        if (timeDiff > ONE_MINUTE) {
-            return NextResponse.json({ message: "Cancel time limit exceeded" }, { status: 400 });
+        if (timeDiff > FIVE_MINUTES) {
+            return NextResponse.json({ message: "Cancel time limit exceeded (5 mins)" }, { status: 400 });
         }
 
         const canceledOrder = await prisma.order.update({

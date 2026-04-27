@@ -24,6 +24,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("Authorize failed: user does not exist")
           return null
         }
+        if (user.status === "BLOCKED") {
+          throw new Error("Your account has been blocked.");
+        }
         if (!user.password) {
           console.log("Authorize failed: no password found (logged in via Google previously?)")
           return null // Handled if user logged in via Google previously
@@ -55,6 +58,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       console.log(user)
       if (account?.provider == "google" && user.email) {
         let dbUser = await prisma.user.findUnique({ where: { email: user.email } })
+        
+        if (dbUser && dbUser.status === "BLOCKED") {
+            throw new Error("Your account has been blocked.");
+        }
+
         if (!dbUser) {
           dbUser = await prisma.user.create({
             data: {

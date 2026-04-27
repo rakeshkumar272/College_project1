@@ -18,7 +18,11 @@ function GeoUpdater({ userId }: { userId: string }) {
         longitude: lon
       })
     }, (err) => {
-      console.error(`[GeoUpdater] Geolocation error (${err.code}): ${err.message}`);
+      if (err.code === err.PERMISSION_DENIED) {
+        console.warn("[GeoUpdater] Geolocation permission denied by user.");
+      } else {
+        console.error(`[GeoUpdater] Geolocation error (${err.code}): ${err.message}`);
+      }
     }, { enableHighAccuracy: true })
     return () => navigator.geolocation.clearWatch(watcher)
 

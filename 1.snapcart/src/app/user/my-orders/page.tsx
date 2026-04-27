@@ -66,7 +66,16 @@ function MyOrder() {
       )))
     })
 
-    return () => { socket.off("order-assigned") }
+    socket.on("order-status-update", ({ orderId, status }) => {
+      setOrders((prev) => prev?.map((o) => (
+        (o.id || o._id) == orderId ? { ...o, status } : o
+      )))
+    })
+
+    return () => { 
+      socket.off("order-assigned") 
+      socket.off("order-status-update")
+    }
   }, [])
 
 

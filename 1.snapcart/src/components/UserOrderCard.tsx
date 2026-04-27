@@ -7,6 +7,8 @@ import { div } from 'motion/react-client'
 import Image from 'next/image'
 import { getSocket } from '@/lib/socket'
 import { useRouter } from 'next/navigation'
+import { useDispatch } from 'react-redux'
+import { setAddItemsTo } from '@/redux/cartSlice'
 interface IOrder {
     id?: string
     _id?: string
@@ -43,6 +45,7 @@ function UserOrderCard({ order }: { order: IOrder }) {
     const [expanded, setExpanded] = useState(false)
     const [status, setStatus] = useState(order.status)
     const router = useRouter()
+    const dispatch = useDispatch()
     const getStatusColor = (status: string) => {
         switch (status) {
             case "pending":
@@ -79,8 +82,8 @@ function UserOrderCard({ order }: { order: IOrder }) {
             const now = new Date().getTime();
             const timeDiff = Math.floor((now - createdTime) / 1000); // seconds passed
 
-            const cancelWindow = 60; // 1 minute
-            const modifyWindow = 120; // 2 minutes
+            const cancelWindow = 300; // 5 minutes
+            const modifyWindow = 600; // 10 minutes
 
             setCancelTimeLeft(Math.max(0, cancelWindow - timeDiff));
             setModifyTimeLeft(Math.max(0, modifyWindow - timeDiff));
@@ -203,7 +206,10 @@ function UserOrderCard({ order }: { order: IOrder }) {
                             </button>
                             <button
                                 disabled={modifyTimeLeft === 0}
-                                onClick={() => router.push(`/user/checkout?addItemsTo=${order.id || order._id}`)}
+                                onClick={() => {
+                                    dispatch(setAddItemsTo(order.id || order._id as any))
+                                    router.push("/")
+                                }}
                                 className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition ${modifyTimeLeft > 0
                                         ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'

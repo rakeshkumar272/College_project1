@@ -47,6 +47,11 @@ const getStatusColor = (status: string) => {
 
 export default function AdminDashboardClient({ revenueSummary, stats, chartData, recentOrders }: propType) {
   const [chartFilter, setChartFilter] = useState<'orders' | 'revenue' | 'customers'>('orders');
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const icons = [
     <Package key="p" className="text-green-700 w-6 h-6" />,
@@ -223,7 +228,7 @@ export default function AdminDashboardClient({ revenueSummary, stats, chartData,
                   <tr key={order.id || order._id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900">#{((order.id || order._id) as string).slice(-6)}</td>
                     <td className="px-6 py-4 text-gray-600">{order.user?.name || 'Guest'}</td>
-                    <td className="px-6 py-4 text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-gray-500">{mounted ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                     <td className="px-6 py-4 font-semibold text-gray-700">₹{order.totalAmount}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 text-xs font-medium border rounded-full \${getStatusColor(order.status)}`}>

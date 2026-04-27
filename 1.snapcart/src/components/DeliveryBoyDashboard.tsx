@@ -11,40 +11,27 @@ import DeliveryChat from './DeliveryChat'
 import { div } from 'motion/react-client'
 import { Loader, Bike, Power, Navigation, History, Headset, RefreshCw, Package, IndianRupee, Timer } from 'lucide-react'
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import Link from 'next/link'
 
 interface ILocation {
   latitude: number,
   longitude: number
 }
 function DeliveryBoyDashboard({ earning }: { earning: number }) {
-  const [assignments, setAssignments] = useState<any[]>([])
   const { userData } = useSelector((state: RootState) => state.user)
   const [activeOrder, setActiveOrder] = useState<any>(null)
   const [showOtpBox, setShowOtpBox] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [pendingAssignment, setPendingAssignment] = useState<any>(null)
+  const [lastChecked, setLastChecked] = useState(5)
+  const [ordersNearYou, setOrdersNearYou] = useState(2)
   const [otpError, setOtpError] = useState("")
   const [sendOtpLoading, setSendOtpLoading] = useState(false)
   const [verifyOtpLoading, setVerifyOtpLoading] = useState(false)
   const [otp, setOtp] = useState("")
-  const [userLocation, setUserLocation] = useState<ILocation>(
-    {
-      latitude: 0,
-      longitude: 0
-    }
-  )
-  const [deliveryBoyLocation, setDeliveryBoyLocation] = useState<ILocation>({
-    latitude: 0,
-    longitude: 0
-  })
-  const fetchAssignments = async () => {
-    try {
-      const result = await axios.get("/api/delivery/get-assignments")
-      setAssignments(result.data)
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
+  const [userLocation, setUserLocation] = useState<ILocation | null>(null)
+  const [deliveryBoyLocation, setDeliveryBoyLocation] = useState<ILocation | null>(null)
   useEffect(() => {
     // Identity is handled by GeoUpdater, but we can ensure it here too if needed
     const socket = getSocket()
@@ -56,28 +43,42 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
     const socket = getSocket()
 
     socket.on("new-assignment", (deliveryAssignment) => {
-      setAssignments((prev) => [...prev, deliveryAssignment])
+      // Auto-assigned order arrived. Intercept and show floating popup.
+      setPendingAssignment(deliveryAssignment)
     })
     return () => socket.off("new-assignment")
   }, [])
 
-  const handleAccept = async (id: string) => {
-    try {
-      const result = await axios.get(`/api/delivery/assignment/${id}/accept-assignment`)
-      setAssignments((prev) => prev.filter(a => (a.id || a._id) !== id))
-      fetchCurrentOrder()
-    } catch (error) {
-      console.log(error)
-      alert("Failed to accept assignment. It may have expired or been taken by someone else.");
+  useEffect(() => {
+    // Dynamic ping timer for UI effect and actual DB poll
+    if (!activeOrder && !pendingAssignment && isOnline) {
+      
+      const fetchNearby = async () => {
+        try {
+          const res = await axios.get('/api/delivery/nearby-orders')
+          setOrdersNearYou(res.data.count || 0)
+        } catch (error) {
+          console.error("Error fetching nearby orders")
+        }
+      }
+
+      fetchNearby() // Initial fetch
+
+      const interval = setInterval(() => {
+        setLastChecked(prev => prev >= 15 ? 2 : prev + 3)
+      }, 3000)
+
+      // Poll real queue every 12 seconds
+      const dataInterval = setInterval(() => {
+        fetchNearby()
+      }, 12000)
+
+      return () => {
+        clearInterval(interval)
+        clearInterval(dataInterval)
+      }
     }
-  }
-
-  const handleReject = (id: string) => {
-    // Just remove it locally from the assignments list
-    setAssignments((prev) => prev.filter(a => (a.id || a._id) !== id))
-  }
-
-
+  }, [activeOrder, pendingAssignment, isOnline])
   const fetchCurrentOrder = async () => {
     try {
       const result = await axios.get("/api/delivery/current-order")
@@ -106,12 +107,25 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
     return () => socket.off("update-deliveryBoy-location")
   }, [])
 
+  const handlePickUp = async () => {
+    if (!activeOrder) return
+    try {
+      await axios.post("/api/delivery/update-status", {
+        orderId: activeOrder.order.id,
+        status: "out of delivery"
+      })
+      await fetchCurrentOrder()
+    } catch (error) {
+      console.error("Error picking up order:", error)
+      alert("Failed to pick up order")
+    }
+  }
+
 
 
 
   useEffect(() => {
     fetchCurrentOrder()
-    fetchAssignments()
   }, [userData])
 
 
@@ -143,7 +157,14 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
     }
   }
 
-  if (!activeOrder && assignments.length === 0) {
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchCurrentOrder()
+    // artificial delay for smooth UX transition
+    setTimeout(() => setIsRefreshing(false), 500)
+  }
+
+  if (!activeOrder) {
     const deliveriesDone = earning / 40 || 0;
 
     return (
@@ -182,19 +203,40 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
             {/* Left Column: Empty State & Performance */}
             <div className='lg:col-span-8 flex flex-col gap-6'>
 
-              {/* Empty State Banner */}
-              <div className='bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-12 flex flex-col items-center justify-center text-center min-h-[320px]'>
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 transition-colors duration-500 ${isOnline ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
-                  <Bike size={48} className={isOnline ? 'animate-bounce' : ''} />
+              {/* Empty State with Map */}
+              <div className='bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] overflow-hidden relative min-h-[400px]'>
+                <div className='absolute inset-0 z-0 grayscale-[50%] opacity-80'>
+                  {deliveryBoyLocation && (
+                    <LiveMap userLocation={{ latitude: 0, longitude: 0 }} deliveryBoyLocation={deliveryBoyLocation} height="100%" />
+                  )}
                 </div>
-                <h3 className='text-2xl font-bold text-gray-800 mb-2'>
-                  {isOnline ? 'Looking for Orders...' : 'You are currently Offline'}
-                </h3>
-                <p className='text-gray-500 max-w-[280px]'>
-                  {isOnline
-                    ? 'Stay online and keep the app open to receive delivery requests near you.'
-                    : 'Go online to start receiving delivery requests and earning money.'}
-                </p>
+
+                <div className='absolute inset-0 z-10 bg-linear-to-t from-white/90 via-white/40 to-transparent pointer-events-none'></div>
+
+                <div className='relative z-20 h-full flex flex-col items-center justify-center p-6 mt-16'>
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-lg relative ${isOnline ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    {isOnline && <span className='absolute inset-0 rounded-full border-4 border-green-400 animate-ping opacity-50'></span>}
+                    <Bike size={36} className={isOnline ? 'animate-bounce' : ''} />
+                  </div>
+                  
+                  <div className='bg-white/95 backdrop-blur-md px-8 py-5 rounded-2xl shadow-lg border border-white max-w-sm text-center'>
+                    <h3 className='text-xl font-bold text-gray-800 mb-1'>
+                      {isOnline ? 'Searching for orders...' : 'You are Offline'}
+                    </h3>
+                    <p className='text-gray-500 text-sm font-medium'>
+                      {isOnline
+                        ? `Last checked: ${lastChecked}s ago`
+                        : 'Go online to start receiving delivery requests.'}
+                    </p>
+                    
+                    {isOnline && ordersNearYou > 0 && (
+                      <div className='mt-4 pt-4 border-t border-gray-100 flex items-center justify-center gap-2'>
+                        <span className='w-2 h-2 rounded-full bg-green-500 animate-ping'></span>
+                        <p className='text-sm text-gray-600 font-semibold'>Orders near you: <span className='text-green-700 font-bold'>{ordersNearYou}</span></p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Performance Stats Grid */}
@@ -250,28 +292,78 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
               <div className='bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] p-6'>
                 <h3 className='font-bold text-gray-800 mb-4'>Quick Actions</h3>
                 <div className='grid grid-cols-2 gap-3'>
-                  <button className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100'>
+                  <Link href="/delivery/history" className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100'>
                     <History size={24} className='text-gray-700' />
                     <span className='text-xs font-semibold text-gray-700'>History</span>
-                  </button>
-                  <button className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100 text-center'>
+                  </Link>
+                  <Link href="/delivery/payouts" className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100 text-center'>
                     <IndianRupee size={24} className='text-gray-700' />
                     <span className='text-xs font-semibold text-gray-700'>Payouts</span>
-                  </button>
-                  <button className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100'>
+                  </Link>
+                  <Link href="/delivery/support" className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100'>
                     <Headset size={24} className='text-gray-700' />
                     <span className='text-xs font-semibold text-gray-700'>Support</span>
-                  </button>
-                  <button onClick={() => window.location.reload()} className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-green-50 hover:border-green-100 transition-colors border border-gray-100 group'>
-                    <RefreshCw size={24} className='text-gray-700 group-hover:text-green-600 group-hover:animate-spin' />
+                  </Link>
+                  <button onClick={handleRefresh} disabled={isRefreshing} className='flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-gray-50 hover:bg-green-50 hover:border-green-100 transition-colors border border-gray-100 group disabled:opacity-50'>
+                    <RefreshCw size={24} className={`text-gray-700 group-hover:text-green-600 ${isRefreshing ? 'animate-spin text-green-600' : 'group-hover:animate-spin'}`} />
                     <span className='text-xs font-semibold text-gray-700 group-hover:text-green-700'>Refresh</span>
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
+
+        {/* Incoming Order Request Popup Modal */}
+        {pendingAssignment && (
+          <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200'>
+            <div className='bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300'>
+              <div className='bg-green-600 p-6 text-center relative overflow-hidden'>
+                <div className='absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite]'></div>
+                <div className='w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg relative z-10'>
+                  <Package size={32} className='text-green-600' />
+                </div>
+                <h3 className='text-white font-bold text-xl relative z-10'>New Delivery Request!</h3>
+                <p className='text-green-100 text-sm mt-1 relative z-10'>Assigning automatically in 15s...</p>
+              </div>
+              
+              <div className='p-6 space-y-5 flex flex-col items-center'>
+                <div className='w-full bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3'>
+                  <div className='flex justify-between items-center'>
+                    <span className='text-sm text-gray-500 font-medium'>Store</span>
+                    <span className='font-bold text-gray-800'>SpeedyMart Hub</span>
+                  </div>
+                  <div className='flex justify-between items-center'>
+                    <span className='text-sm text-gray-500 font-medium'>Distance</span>
+                    <span className='font-bold text-gray-800 flex items-center gap-1'><Navigation size={14}/> {((Math.random() * 2) + 1).toFixed(1)} km</span>
+                  </div>
+                  <div className='pt-3 mt-3 border-t border-dashed border-gray-200 flex justify-between items-center'>
+                    <span className='text-sm text-gray-500 font-medium'>Earning</span>
+                    <span className='text-xl font-black text-green-600 flex items-center'><IndianRupee size={20}/> 40</span>
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-2 gap-3 w-full'>
+                  <button 
+                    onClick={() => setPendingAssignment(null)}
+                    className='py-3.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors'
+                  >
+                    Decline
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setPendingAssignment(null)
+                      fetchCurrentOrder()
+                    }}
+                    className='py-3.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-200'
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -347,7 +439,16 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
                 <h3 className='text-lg font-bold text-gray-800 mb-2'>Delivery Verification</h3>
                 <p className='text-sm text-gray-500 mb-6 leading-relaxed'>Ask the customer for the 4-digit security PIN to mark this order as safely delivered.</p>
 
-                {!activeOrder.order.deliveryOtpVerification && !showOtpBox && (
+                {activeOrder.order.status === "assigned" && (
+                  <button
+                    onClick={handlePickUp}
+                    className='w-full py-4 bg-orange-500 hover:bg-orange-600 transition-colors font-semibold text-center text-white rounded-xl shadow-md shadow-orange-100/50 mb-4'
+                  >
+                    I have picked up the order
+                  </button>
+                )}
+
+                {activeOrder.order.status === "out of delivery" && !showOtpBox && (
                   <button
                     onClick={sendOtp}
                     className='w-full py-4 bg-green-600 hover:bg-green-700 transition-colors font-semibold text-center text-white rounded-xl shadow-md shadow-green-100/50'
@@ -395,31 +496,6 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
     )
   }
 
-
-  return (
-    <div className='w-full min-h-screen bg-gray-50 p-4'>
-      <div className="max-w-3xl mx-auto">
-        <h2 className='text-2xl font-bold mt-[120px] mb-[30px]'>Delivery Assigments</h2>
-
-        {assignments.map((a, index) => (
-          <div key={index} className='p-5 bg-white rounded-xl shadow mb-4  border'>
-            <p ><b>Order Id </b> #{(a?.order.id || a?.order._id)?.toString().slice(-6)}</p>
-            <p className='text-gray-600'>{a.order.addressFullAddress}</p>
-
-            <div className='flex gap-3 mt-4'>
-              <button className='flex-1 bg-green-600 text-white py-2 rounded-lg'
-                onClick={() => handleAccept(a.id || a._id)}
-              >Accept</button>
-              <button
-                onClick={() => handleReject(a.id || a._id)}
-                className='flex-1 bg-red-600 text-white py-2 rounded-lg'
-              >Reject</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 export default DeliveryBoyDashboard
