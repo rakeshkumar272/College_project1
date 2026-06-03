@@ -36,6 +36,7 @@ interface IOrder {
   addressLongitude?: number,
   assignment?: string
   assignedDeliveryBoy?: any
+  orderNumber?: number
   status: "pending" | "out of delivery" | "delivered",
   createdAt?: Date
   updatedAt?: Date
@@ -84,7 +85,7 @@ function MyOrder() {
     return <div className='flex items-center justify-center min-h-[50vh] text-gray-600'>Loading Your Orders...</div>
   }
   return (
-    <div className='bg-linear-to-b from-white to-gray-100 min-h-screen w-full'>
+    <div className='bg-transparent min-h-screen w-full'>
       <div className='max-w-3xl mx-auto px-4 pt-16 pb-10 relative'>
         <div className='fixed top-0 left-0 w-full backdrop-blur-lg bg-white/70 shadow-sm border-b z-50'>
           <div className='max-w-3xl mx-auto flex items-center gap-4 px-4 py-3'>

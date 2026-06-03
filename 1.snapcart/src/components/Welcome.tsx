@@ -7,7 +7,8 @@ type propType = {
 }
 function Welcome({ nextStep }: propType) {
    return (
-      <div className='flex flex-col items-center justify-center min-h-screen text-center p-6 bg-linear-to-b from-green-100 to-white'>
+      <div className='flex flex-col items-center justify-center min-h-screen text-center p-6 relative bg-transparent'>
+        <div className='bg-white/80 backdrop-blur-md p-10 rounded-3xl shadow-2xl flex flex-col items-center border border-white/50 max-w-lg w-full'>
          <motion.div
             initial={{
                opacity: 0,
@@ -84,7 +85,7 @@ function Welcome({ nextStep }: propType) {
             Next
             <ArrowRight />
          </motion.button>
-
+        </div>
       </div>
    )
 }

@@ -36,7 +36,7 @@ function Footer() {
               <MapPin size={16} /> Bengaluru, India
             </li>
             <li className="flex items-center gap-2">
-              <Phone size={16} /> +91 0000000000
+              <Phone size={16} /> +91 9844432665
             </li>
             <li className="flex items-center gap-2">
               <Mail size={16} /> speedymart@gmail.com

@@ -39,7 +39,8 @@ function RegisterForm({ previousStep }: propType) {
     }
   }
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen px-6 py-10 bg-white relative'>
+    <div className='flex flex-col items-center justify-center min-h-screen px-6 py-10 relative bg-transparent'>
+      <div className='bg-white/80 backdrop-blur-md p-8 md:p-10 rounded-3xl shadow-2xl flex flex-col items-center w-full max-w-md border border-white/50'>
       <div className='absolute top-6 left-6 flex items-center gap-2 text-green-700 hover:text-green-800 transition-colors cursor-pointer '
         onClick={() => previousStep(1)}
       >
@@ -47,30 +48,18 @@ function RegisterForm({ previousStep }: propType) {
         <span className='font-medium'>Back</span>
       </div>
       <motion.h1
-        initial={{
-          y: -10,
-          opacity: 0
-        }}
-        animate={{
-          y: 0,
-          opacity: 1
-        }}
-        transition={{
-          duration: 0.6
-        }}
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6 }}
         className='text-4xl font-extrabold text-green-700 mb-2'>Create Account</motion.h1>
       <p className='text-gray-600 mb-8 flex items-center'>Join SpeedyMart today <Leaf className='w-5 h-5 text-green-600' /></p>
+      
       <motion.form
         onSubmit={handleRegister}
-        initial={{
-          opacity: 0
-        }}
-        animate={{
-          opacity: 1
-        }}
-        transition={{
-          duration: 0.6
-        }} className='flex flex-col gap-5 w-full max-w-sm'>
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }} 
+        className='flex flex-col gap-5 w-full'>
 
         {error && (
           <motion.div
@@ -96,21 +85,21 @@ function RegisterForm({ previousStep }: propType) {
 
         <div className='relative'>
           <User className='absolute left-3 top-3.5 w-5 h-5 text-gray-400' />
-          <input type="text" placeholder='Your Name' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 focus:ring-2 focus:ring-green-500 focus:outline-none'
+          <input type="text" placeholder='Your Name' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 bg-white/90 focus:ring-2 focus:ring-green-500 focus:outline-none'
             onChange={(e) => setName(e.target.value)}
             value={name}
           />
         </div>
         <div className='relative'>
           <Mail className='absolute left-3 top-3.5 w-5 h-5 text-gray-400' />
-          <input type="text" placeholder='Your Email' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 focus:ring-2 focus:ring-green-500 focus:outline-none'
+          <input type="text" placeholder='Your Email' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 bg-white/90 focus:ring-2 focus:ring-green-500 focus:outline-none'
             onChange={(e) => setEmail(e.target.value)}
             value={email}
           />
         </div>
         <div className='relative'>
           <Lock className='absolute left-3 top-3.5 w-5 h-5 text-gray-400' />
-          <input type={showPassword ? "text" : "password"} placeholder='Your Password' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 focus:ring-2 focus:ring-green-500 focus:outline-none'
+          <input type={showPassword ? "text" : "password"} placeholder='Your Password' className='w-full border border-gray-300 rounded-xl py-3 pl-10 pr-4 text-gray-800 bg-white/90 focus:ring-2 focus:ring-green-500 focus:outline-none'
             onChange={(e) => setPassword(e.target.value)}
             value={password}
           />
@@ -127,7 +116,6 @@ function RegisterForm({ previousStep }: propType) {
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}>
               {loading ? <Loader2 className='w-5 h-5 animate-spin' /> : "Register"}
-
             </button>
           })()
         }
@@ -138,14 +126,15 @@ function RegisterForm({ previousStep }: propType) {
           <span className='flex-1 h-px bg-gray-200'></span>
         </div>
 
-        <div className='w-full flex items-center justify-center gap-3 border border-gray-300 hover:bg-gray-50 py-3 rounded-xl text-gray-700 font-medium transition-all duration-200' onClick={() => signIn("google", { callbackUrl: "/" })}>
+        <div className='w-full flex items-center justify-center gap-3 border border-gray-300 bg-white/90 hover:bg-gray-50 py-3 rounded-xl text-gray-700 font-medium transition-all duration-200 cursor-pointer' onClick={() => signIn("google", { callbackUrl: "/" })}>
           <Image src={googleImage} width={20} height={20} alt='google' />
           Continue with Google
         </div>
 
       </motion.form>
 
-      <p className='cursor-pointer text-gray-600 mt-6 text-sm flex items-center gap-1' onClick={() => router.push("/login")}>Already have an account ? <LogIn className='w-4 h-4' /> <span className='text-green-600'> Sign in</span></p>
+      <p className='cursor-pointer text-gray-600 mt-6 text-sm flex items-center gap-1' onClick={() => router.push("/login")}>Already have an account ? <LogIn className='w-4 h-4' /> <span className='text-green-600 font-semibold'> Sign in</span></p>
+      </div>
     </div>
   )
 }

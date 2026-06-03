@@ -5,13 +5,14 @@ import { IndianRupee, Package, Truck, Users, Clock, ArrowRight, PackagePlus, Cli
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import Link from 'next/link';
 
-type Order = {
+interface Order {
   id?: string;
   _id?: string;
-  createdAt: string;
+  orderNumber?: number;
   totalAmount: number;
   status: string;
-  user?: { name: string };
+  createdAt: string | Date;
+  user?: { name?: string };
 };
 
 type propType = {
@@ -226,7 +227,7 @@ export default function AdminDashboardClient({ revenueSummary, stats, chartData,
               ) : (
                 recentOrders.map((order) => (
                   <tr key={order.id || order._id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">#{((order.id || order._id) as string).slice(-6)}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">#{order.orderNumber || ((order.id || order._id) as string).slice(-6)}</td>
                     <td className="px-6 py-4 text-gray-600">{order.user?.name || 'Guest'}</td>
                     <td className="px-6 py-4 text-gray-500">{mounted ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                     <td className="px-6 py-4 font-semibold text-gray-700">₹{order.totalAmount}</td>

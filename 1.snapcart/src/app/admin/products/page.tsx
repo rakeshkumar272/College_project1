@@ -22,19 +22,23 @@ const units = [
 ]
 function ViewGrocery() {
     const router = useRouter()
-    const [groceries, setGroceries] = useState<any[]>()
+    const [groceries, setGroceries] = useState<any[]>([])
     const [search, setSearch] = useState("")
     const [editing, setEditing] = useState<any | null>(null)
     const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [backendImage, setBackendImage] = useState<Blob | null>(null)
     const [loading, setLoading] = useState(false)
     const [deleteLoading, setDeleteLoading] = useState(false)
-    const [fillterd, setFilltered] = useState<any[]>()
+    const [fillterd, setFilltered] = useState<any[]>([])
     const getGroceries = async () => {
         try {
             const result = await axios.get("/api/admin/get-groceries")
-            setGroceries(result.data)
-            setFilltered(result.data)
+            if (Array.isArray(result.data)) {
+                setGroceries(result.data)
+                setFilltered(result.data)
+            } else {
+                console.error("API did not return an array", result.data)
+            }
         } catch (error) {
             console.log(error)
         }
@@ -167,10 +171,18 @@ function ViewGrocery() {
                     >
                         <div className='relative w-full sm:w-44 aspect-square rounded-xl overflow-hidden border border-gray-200'>
                             <Image
-                                src={g.image}
+                                src={g.image || "/images/fallback.png"}
                                 alt={g.name}
                                 fill
+                                unoptimized={true}
                                 className='object-cover hover:scale-110 transition-transform duration-500'
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if(target.src !== "/images/fallback.png") {
+                                        target.src = "/images/fallback.png";
+                                        target.srcset = "";
+                                    }
+                                }}
                             />
                         </div>
 
@@ -220,10 +232,18 @@ function ViewGrocery() {
                             </div>
                             <div className='relative aspect-square w-full rounded-lg overflow-hidden mb-4 border border-gray-200 group'>
                                 {imagePreview && <Image
-                                    src={imagePreview}
+                                    src={imagePreview || "/images/fallback.png"}
                                     alt={editing.name}
                                     fill
+                                    unoptimized={true}
                                     className='object-cover'
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        if(target.src !== "/images/fallback.png") {
+                                            target.src = "/images/fallback.png";
+                                            target.srcset = "";
+                                        }
+                                    }}
                                 />}
                                 <label htmlFor='imageUpload' className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity'><Upload size={28} className='text-green-500' /></label>
                                 <input type="file" accept='image/*' hidden id='imageUpload' onChange={handleImageUpload} />
@@ -273,7 +293,7 @@ function ViewGrocery() {
                                         <h3 className='font-bold text-gray-700 text-sm'>Product Variants</h3>
                                         <button 
                                             type="button" 
-                                            onClick={() => setEditing({...editing, variants: [...(editing.variants || []), { label: "", weight: 0, price: 0, stock: 100 }]})}
+                                            onClick={() => setEditing({...editing, variants: [...(editing.variants || []), { weightInGrams: 0, price: 0, stock: 100 }]})}
                                             className='text-xs bg-gray-100 text-gray-700 font-semibold px-3 py-1 rounded-full hover:bg-gray-200'
                                         >
                                             + Add Variant
@@ -282,49 +302,63 @@ function ViewGrocery() {
                                     
                                     <div className='space-y-3'>
                                         {editing.variants?.map((v: any, index: number) => (
-                                            <div key={index} className='flex gap-2 items-center bg-gray-50 p-2 rounded-lg border border-gray-100'>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="Label (e.g 250g)" 
-                                                    value={v.label} 
-                                                    onChange={e => {
-                                                        const newVar = [...editing.variants];
-                                                        newVar[index].label = e.target.value;
-                                                        setEditing({...editing, variants: newVar});
-                                                    }}
-                                                    className='w-1/3 text-xs border rounded p-2 outline-none focus:border-green-500'
-                                                />
-                                                <input 
-                                                    type="number" 
-                                                    placeholder="Weight" 
-                                                    value={v.weight || ''} 
-                                                    onChange={e => {
-                                                        const newVar = [...editing.variants];
-                                                        newVar[index].weight = Number(e.target.value);
-                                                        setEditing({...editing, variants: newVar});
-                                                    }}
-                                                    className='w-1/4 text-xs border rounded p-2 outline-none focus:border-green-500'
-                                                />
-                                                <input 
-                                                    type="number" 
-                                                    placeholder="Price ₹" 
-                                                    value={v.price} 
-                                                    onChange={e => {
-                                                        const newVar = [...editing.variants];
-                                                        newVar[index].price = Number(e.target.value);
-                                                        setEditing({...editing, variants: newVar});
-                                                    }}
-                                                    className='w-1/4 text-xs border rounded p-2 outline-none focus:border-green-500'
-                                                />
-                                                <button 
-                                                    className='text-red-500 hover:bg-red-100 p-1.5 rounded-md'
-                                                    onClick={() => {
-                                                        const newVar = editing.variants.filter((_: any, i: number) => i !== index);
-                                                        setEditing({...editing, variants: newVar});
-                                                    }}
-                                                >
-                                                    <X size={14}/>
-                                                </button>
+                                            <div key={index} className='flex flex-col gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100'>
+                                                <div className='flex gap-2 items-center'>
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="Weight (grams)" 
+                                                        value={v.weightInGrams || ''} 
+                                                        onChange={e => {
+                                                            const newVar = [...editing.variants];
+                                                            newVar[index].weightInGrams = Number(e.target.value);
+                                                            setEditing({...editing, variants: newVar});
+                                                        }}
+                                                        className='w-1/2 text-xs border rounded p-2 outline-none focus:border-green-500'
+                                                    />
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="Price ₹" 
+                                                        value={v.price} 
+                                                        onChange={e => {
+                                                            const newVar = [...editing.variants];
+                                                            newVar[index].price = Number(e.target.value);
+                                                            setEditing({...editing, variants: newVar});
+                                                        }}
+                                                        className='w-1/4 text-xs border rounded p-2 outline-none focus:border-green-500'
+                                                    />
+                                                    <button 
+                                                        className='text-red-500 hover:bg-red-100 p-1.5 rounded-md ml-auto'
+                                                        onClick={() => {
+                                                            const newVar = editing.variants.filter((_: any, i: number) => i !== index);
+                                                            setEditing({...editing, variants: newVar});
+                                                        }}
+                                                    >
+                                                        <X size={14}/>
+                                                    </button>
+                                                </div>
+                                                <div className='flex items-center gap-2'>
+                                                    <label className='text-[10px] text-gray-500 font-bold uppercase'>Stock Quantity:</label>
+                                                    <input 
+                                                        type="number" 
+                                                        placeholder="Stock" 
+                                                        value={v.stockQuantity || v.stock || 0} 
+                                                        onChange={e => {
+                                                            const newVar = [...editing.variants];
+                                                            newVar[index].stockQuantity = Number(e.target.value);
+                                                            // Keep stock for backward compatibility if needed during migration
+                                                            newVar[index].stock = Number(e.target.value);
+                                                            setEditing({...editing, variants: newVar});
+                                                        }}
+                                                        className='w-1/3 text-xs border rounded p-2 outline-none focus:border-green-500 bg-white'
+                                                    />
+                                                    {(v.stockQuantity || v.stock) <= 0 ? (
+                                                        <span className='text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold'>OUT OF STOCK</span>
+                                                    ) : (v.stockQuantity || v.stock) <= 5 ? (
+                                                        <span className='text-[10px] bg-yellow-100 text-yellow-600 px-2 py-0.5 rounded-full font-bold'>LOW STOCK</span>
+                                                    ) : (
+                                                        <span className='text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-bold'>IN STOCK</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                         {(!editing.variants || editing.variants.length === 0) && (

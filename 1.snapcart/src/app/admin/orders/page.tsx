@@ -3,7 +3,7 @@ import AdminOrderCard from '@/components/AdminOrderCard'
 import { getSocket } from '@/lib/socket'
 
 import axios from 'axios'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -37,6 +37,7 @@ interface IOrder {
   }
   assignment?: string
   assignedDeliveryBoy?: any
+  orderNumber?: number
   status: "pending" | "out of delivery" | "delivered",
   createdAt?: Date
   updatedAt?: Date
@@ -73,11 +74,24 @@ function ManageOrders() {
 
     }
   }, [])
+
+  const handleExport = () => {
+    window.location.href = '/api/admin/export-financials';
+  }
+
   return (
     <div className='w-full'>
-      <div className='mb-6'>
-        <h1 className="text-2xl font-bold text-gray-800">Manage Orders</h1>
-        <p className="text-sm text-gray-500 mt-1">View and update customer orders.</p>
+      <div className='mb-6 flex justify-between items-center'>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Manage Orders</h1>
+          <p className="text-sm text-gray-500 mt-1">View and update customer orders.</p>
+        </div>
+        <button 
+          onClick={handleExport}
+          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 shadow-sm transition-colors"
+        >
+          <Download size={18} /> Export Financials
+        </button>
       </div>
       <div className='space-y-6'>
         <div className='space-y-6'>

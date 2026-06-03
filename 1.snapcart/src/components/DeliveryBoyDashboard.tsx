@@ -2,7 +2,7 @@
 import { getSocket } from '@/lib/socket'
 import { RootState } from '@/redux/store'
 import axios from 'axios'
-import { resolveSoa } from 'dns'
+
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import dynamic from 'next/dynamic'
@@ -43,8 +43,8 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
     const socket = getSocket()
 
     socket.on("new-assignment", (deliveryAssignment) => {
-      // Auto-assigned order arrived. Intercept and show floating popup.
-      setPendingAssignment(deliveryAssignment)
+      // Auto-assigned order arrived. Instantly fetch and display.
+      fetchCurrentOrder()
     })
     return () => socket.off("new-assignment")
   }, [])
@@ -98,14 +98,36 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
 
   useEffect((): any => {
     const socket = getSocket()
-    socket.on("update-deliveryBoy-location", ({ userId, location }) => {
-      setDeliveryBoyLocation({
-        latitude: location.coordinates[1],
-        longitude: location.coordinates[0]
+    
+    // Initial location from browser
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setDeliveryBoyLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        })
       })
+      
+      const watchId = navigator.geolocation.watchPosition((pos) => {
+        setDeliveryBoyLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude
+        })
+      })
+      return () => navigator.geolocation.clearWatch(watchId)
+    }
+
+    socket.on("update-deliveryBoy-location", ({ userId, location }) => {
+      // If we receive an update for ourself or another boy (though usually just ourself in this context)
+      if (userId === userData?.id || userId === userData?._id) {
+        setDeliveryBoyLocation({
+          latitude: location.coordinates[1],
+          longitude: location.coordinates[0]
+        })
+      }
     })
     return () => socket.off("update-deliveryBoy-location")
-  }, [])
+  }, [userData])
 
   const handlePickUp = async () => {
     if (!activeOrder) return
@@ -314,62 +336,13 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
           </div>
         </div>
 
-        {/* Incoming Order Request Popup Modal */}
-        {pendingAssignment && (
-          <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200'>
-            <div className='bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300'>
-              <div className='bg-green-600 p-6 text-center relative overflow-hidden'>
-                <div className='absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite]'></div>
-                <div className='w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg relative z-10'>
-                  <Package size={32} className='text-green-600' />
-                </div>
-                <h3 className='text-white font-bold text-xl relative z-10'>New Delivery Request!</h3>
-                <p className='text-green-100 text-sm mt-1 relative z-10'>Assigning automatically in 15s...</p>
-              </div>
-              
-              <div className='p-6 space-y-5 flex flex-col items-center'>
-                <div className='w-full bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3'>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-sm text-gray-500 font-medium'>Store</span>
-                    <span className='font-bold text-gray-800'>SpeedyMart Hub</span>
-                  </div>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-sm text-gray-500 font-medium'>Distance</span>
-                    <span className='font-bold text-gray-800 flex items-center gap-1'><Navigation size={14}/> {((Math.random() * 2) + 1).toFixed(1)} km</span>
-                  </div>
-                  <div className='pt-3 mt-3 border-t border-dashed border-gray-200 flex justify-between items-center'>
-                    <span className='text-sm text-gray-500 font-medium'>Earning</span>
-                    <span className='text-xl font-black text-green-600 flex items-center'><IndianRupee size={20}/> 40</span>
-                  </div>
-                </div>
 
-                <div className='grid grid-cols-2 gap-3 w-full'>
-                  <button 
-                    onClick={() => setPendingAssignment(null)}
-                    className='py-3.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors'
-                  >
-                    Decline
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setPendingAssignment(null)
-                      fetchCurrentOrder()
-                    }}
-                    className='py-3.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-200'
-                  >
-                    Accept
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     )
   }
 
   if (activeOrder && userLocation) {
-    const orderIdShort = (activeOrder.order.id || activeOrder.order._id).toString().slice(-6);
+    const orderIdShort = activeOrder.order.orderNumber || (activeOrder.order.id || activeOrder.order._id).toString().slice(-6);
 
     return (
       <div className='p-4 pt-[100px] pb-12 min-h-screen bg-gray-50 flex justify-center'>
@@ -431,7 +404,7 @@ function DeliveryBoyDashboard({ earning }: { earning: number }) {
 
               {/* Delivery Chat Component */}
               <div className='bg-white rounded-2xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] overflow-hidden'>
-                <DeliveryChat orderId={activeOrder.order.id || activeOrder.order._id} deliveryBoyId={userData?._id?.toString()!} />
+                <DeliveryChat orderId={activeOrder.order.id || activeOrder.order._id} deliveryBoyId={(userData?.id || userData?._id)?.toString()!} />
               </div>
 
               {/* OTP Verification Card */}

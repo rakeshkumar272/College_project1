@@ -37,6 +37,7 @@ interface IOrder {
     addressLongitude?: number,
     assignment?: string
     assignedDeliveryBoy?: any
+    orderNumber?: number
     status: "pending" | "out of delivery" | "delivered" | "canceled",
     createdAt?: Date
     updatedAt?: Date
@@ -125,7 +126,7 @@ function UserOrderCard({ order }: { order: IOrder }) {
             className='bg-white rounded-2xl border border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden'>
             <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-gray-100 px-5 py-4 bg-linear-to-r from-green-50 to-white'>
                 <div>
-                    <h3 className='text-lg font-semibold text-gray-800'>order <span className='text-green-700 font-bold'>#{((order as any).id || order?._id)?.toString()?.slice(-6)}</span></h3>
+                    <h3 className='text-lg font-semibold text-gray-800'>order <span className='text-green-700 font-bold'>#{order.orderNumber || ((order as any).id || order?._id)?.toString()?.slice(-6)}</span></h3>
                     <p className='text-xs text-gray-500 mt-1'>{new Date(order.createdAt!).toLocaleString()}</p>
                 </div>
                 <div className='flex flex-wrap items-center gap-2'>
@@ -252,7 +253,7 @@ function UserOrderCard({ order }: { order: IOrder }) {
                                     key={index}
                                     className='flex justify-between items-center bg-gray-50 rounded-xl px-3 py-2 hover:bg-gray-100 transition'>
                                     <div className='flex items-center gap-3'>
-                                        <Image src={item.image} alt={item.name} width={48} height={48} className=" rounded-lg object-cover border border-gray-200" />
+                                        <img src={item.image || "/images/fallback.png"} alt={item.name} width={48} height={48} className=" rounded-lg object-cover border border-gray-200" onError={(e) => { e.currentTarget.src = "/images/fallback.png"; }} />
                                         <div>
                                             <p className='text-sm font-medium text-gray-800'>{item.name}</p>
                                             <p className='text-xs text-gray-500'>{item.quantity} x {item.unit}</p>

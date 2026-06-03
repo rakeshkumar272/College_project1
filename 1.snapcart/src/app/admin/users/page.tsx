@@ -92,7 +92,10 @@ export default function UsersPage() {
                                                 {user.image ? <img src={user.image} className="w-full h-full rounded-full object-cover"/> : user.name?.[0] || 'U'}
                                             </div>
                                             <div>
-                                                <p className='text-sm font-bold text-gray-800'>{user.name}</p>
+                                                <p className='text-sm font-bold text-gray-800 flex items-center gap-2'>
+                                                    {user.name}
+                                                    {user.isTopBuyer && <span className='text-[9px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200'>⭐ Top Buyer</span>}
+                                                </p>
                                                 <p className='text-[10px] text-gray-400 font-medium'>ID: {user.id.slice(-8)}</p>
                                             </div>
                                         </div>

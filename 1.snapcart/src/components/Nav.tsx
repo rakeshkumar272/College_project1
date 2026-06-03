@@ -19,6 +19,7 @@ interface IUser {
     mobile?: string
     role: "user" | "deliveryBoy" | "admin"
     image?: string
+    isTopBuyer?: boolean
 }
 function Nav({ user }: { user: IUser }) {
     const [open, setOpen] = useState(false)
@@ -155,7 +156,10 @@ function Nav({ user }: { user: IUser }) {
                                         {user.image ? <Image src={user.image} alt='user' fill className='object-cover rounded-full' /> : <User />}
                                     </div>
                                     <div>
-                                        <div className='text-gray-800 font-semibold'>{user.name}</div>
+                                        <div className='flex items-center gap-2'>
+                                            <div className='text-gray-800 font-semibold'>{user.name}</div>
+                                            {user.isTopBuyer && <span className='text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200 font-bold'>⭐ VIP</span>}
+                                        </div>
                                         <div className='text-xs text-gray-500 capitalize'>{user.role}</div>
                                     </div>
                                 </div>

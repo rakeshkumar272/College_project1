@@ -54,12 +54,21 @@ export async function PUT(req: NextRequest) {
 
             // Bulk Insert current valid list
             if (variants && variants.length > 0) {
-                const variantData = variants.map((v: any) => ({
-                    groceryId: grocery.id,
-                    label: v.label,
-                    price: Number(v.price),
-                    stock: Number(v.stock) || 0
-                }))
+                const variantData = variants.map((v: any) => {
+                    const qty = Number(v.stockQuantity || v.stock || 0);
+                    let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
+                    if (qty <= 0) status = "OUT_OF_STOCK";
+                    else if (qty <= 5) status = "LOW_STOCK";
+
+                    return {
+                        groceryId: grocery.id,
+                        weightInGrams: v.weightInGrams ? Number(v.weightInGrams) : 0,
+                        label: v.weightInGrams ? `${v.weightInGrams}g` : "", // Fallback
+                        price: Number(v.price),
+                        stockQuantity: qty,
+                        stockStatus: status
+                    };
+                })
 
                 await tx.groceryVariant.createMany({
                     data: variantData

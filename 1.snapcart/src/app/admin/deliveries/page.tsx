@@ -68,7 +68,7 @@ export default function DeliveriesPage() {
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                                        ID: {delivery.order.id.slice(-6)}
+                                        ID: {delivery.order.orderNumber || delivery.order.id.slice(-6)}
                                     </span>
                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                                         delivery.status === 'assigned' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'

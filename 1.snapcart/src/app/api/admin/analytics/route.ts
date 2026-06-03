@@ -36,10 +36,12 @@ export async function GET(req: NextRequest) {
         const productSales: Record<string, { name: string, quantity: number }> = {};
         orders.forEach(order => {
             order.items.forEach(item => {
-                if (!productSales[item.groceryId]) {
-                    productSales[item.groceryId] = { name: item.name, quantity: 0 };
+                if (item.groceryId) {
+                    if (!productSales[item.groceryId]) {
+                        productSales[item.groceryId] = { name: item.name, quantity: 0 };
+                    }
+                    productSales[item.groceryId].quantity += item.quantity;
                 }
-                productSales[item.groceryId].quantity += item.quantity;
             });
         });
 

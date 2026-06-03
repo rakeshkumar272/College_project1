@@ -44,7 +44,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ord
             data: {
                 totalAmount: newTotal,
                 items: {
-                    create: data.items
+                    create: data.items.map((item: any) => ({
+                        groceryId: item.productId || item.grocery,
+                        name: item.name,
+                        price: item.price.toString(),
+                        unit: item.unit.toString(),
+                        image: item.image,
+                        quantity: Number(item.quantity)
+                    }))
                 }
             },
             include: { user: true, items: true }

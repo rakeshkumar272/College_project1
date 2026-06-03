@@ -35,6 +35,7 @@ interface IOrder {
     addressLongitude?: number,
     assignment?: string
     assignedDeliveryBoy?: any
+    orderNumber?: number
     status: "pending" | "out of delivery" | "delivered",
     createdAt?: Date
     updatedAt?: Date
@@ -79,7 +80,7 @@ function AdminOrderCard({ order }: { order: IOrder }) {
                 <div className='space-y-1'>
                     <p className='text-lg font-bold flex items-center gap-2 text-green-700'>
                         <Package size={20} />
-                        Order #{((order as any).id || order._id)?.toString().slice(-6)}
+                        Order #{order.orderNumber || ((order as any).id || order._id)?.toString().slice(-6)}
                     </p>
                     {status != "delivered" && <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full border ${order.isPaid
                         ? "bg-green-100 text-green-700 border-green-300"
@@ -182,7 +183,7 @@ function AdminOrderCard({ order }: { order: IOrder }) {
                                 key={index}
                                 className='flex justify-between items-center bg-gray-50 rounded-xl px-3 py-2 hover:bg-gray-100 transition'>
                                 <div className='flex items-center gap-3'>
-                                    <Image src={item.image} alt={item.name} width={48} height={48} className=" rounded-lg object-cover border border-gray-200" />
+                                    <img src={item.image || "/images/fallback.png"} alt={item.name} width={48} height={48} className="rounded-lg object-cover border border-gray-200" onError={(e) => { e.currentTarget.src = "/images/fallback.png"; }} />
                                     <div>
                                         <p className='text-sm font-medium text-gray-800'>{item.name}</p>
                                         <p className='text-xs text-gray-500'>{item.quantity} x {item.unit}</p>

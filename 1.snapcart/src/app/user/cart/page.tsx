@@ -15,6 +15,47 @@ function CartPage() {
     const {cartData, subTotal, finalTotal, deliveryFee, addItemsTo} = useSelector((state:RootState)=>state.cart)
     const dispatch=useDispatch<AppDispatch>()
     const router=useRouter()
+
+    React.useEffect(() => {
+      // Validate cart items against active database
+      if (cartData && cartData.length > 0) {
+        fetch("/api/admin/get-groceries")
+          .then(res => res.json())
+          .then(data => {
+            if (Array.isArray(data)) {
+              const activeProductIds = new Set();
+              const activeVariantIds = new Set();
+              data.forEach((g: any) => {
+                activeProductIds.add(g.id || g._id);
+                if (g.variants) {
+                  g.variants.forEach((v: any) => activeVariantIds.add(v.id || v._id));
+                }
+              });
+
+              cartData.forEach((cartItem: any) => {
+                const baseId = cartItem.productId || cartItem._id?.split('_')[0] || cartItem.id?.split('_')[0];
+                const hasVariant = !!cartItem.variant;
+                
+                let isValid = false;
+                if (baseId && activeProductIds.has(baseId)) {
+                    if (hasVariant) {
+                        isValid = activeVariantIds.has(cartItem.variant);
+                    } else {
+                        isValid = true;
+                    }
+                }
+
+                if (!isValid) {
+                  console.warn(`Removing deleted product from cart: ${cartItem.name}`);
+                  dispatch(removeFromCart(cartItem._id || cartItem.id));
+                }
+              });
+            }
+          })
+          .catch(err => console.error("Error syncing cart:", err));
+      }
+    }, [cartData, dispatch]);
+
   return (
     <div className='w-[95%] sm:w-[90%] md:w-[80%] mx-auto mt-8 mb-24 relative'>
       <Link href={"/"} className='absolute -top-2 left-0 flex items-center gap-2 text-green-700 hover:text-green-800 font-medium transition-all'>
@@ -60,17 +101,24 @@ className='text-center py-20 bg-white rounded-2xl shadow-md'
                 className='flex flex-col sm:flex-row items-center bg-white rounded-2xl shadow-md p-5 hover:shadow-xl transition-all duration-300 border border-gray-100'
                 >
                     <div className='relative w-28 h-28 sm:w-24 sm:h-24 md:w-28 md:h-28 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50'>
-                        <Image
-                        src={item.image}
+                        <img
+                        src={item.image || "/images/fallback.png"}
                         alt={item.name}
-                        fill
-                        className='object-contain p-3 transition-transform duration-300 hover:scale-105'
+                        className='object-contain w-full h-full p-3 transition-transform duration-300 hover:scale-105'
+                        onError={(e) => {
+                          e.currentTarget.src = "/images/fallback.png";
+                        }}
                         />
                     </div>
                      <div className='mt-4 sm:mt-0 sm:ml-4 flex-1 text-center sm:text-left'>
                         <h3 className='text-base sm:text-lg font-semibold text-gray-800 line-clamp-1'>{item.name}</h3>
-                        <p className='text-xs sm:text-sm text-gray-500'>{item.unit}</p>
-                        <p className='text-green-700 font-bold mt-1 text-sm sm:text-base'>₹{Number(item.price)*item.quantity}</p>
+                        <p className='text-xs sm:text-sm text-gray-500 font-medium'>
+                            {item.weightInGrams 
+                                ? (item.weightInGrams >= 1000 ? `${item.weightInGrams/1000}kg` : `${item.weightInGrams}g`) 
+                                : item.unit} × {item.quantity}
+                        </p>
+                        <p className='text-xs text-gray-400'>₹{item.price} each</p>
+                        <p className='text-green-700 font-bold mt-1 text-sm sm:text-base'>Total: ₹{Number(item.price)*item.quantity}</p>
                      </div>
                      <div className='flex items-center justify-center sm:justify-end gap-3 mt-3 sm:mt-0 bg-gray-50 px-3 py-2 rounded-full'>
                        <button className='bg-white p-1.5 rounded-full hover:bg-green-100 transition-all border border-gray-200' onClick={()=>dispatch(decreaseQuantity(item._id))}><Minus size={14} className='text-green-700'/></button>

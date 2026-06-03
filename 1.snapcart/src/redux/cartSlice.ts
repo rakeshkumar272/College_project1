@@ -4,6 +4,7 @@ interface IGrocery {
    _id: string, // Unique identifier in cart (productId-variant)
    productId: string,
    variant?: string, // e.g., '500g'
+   weightInGrams?: number, // e.g., 500, 1000
    name: string,
    category: string,
    price: string,

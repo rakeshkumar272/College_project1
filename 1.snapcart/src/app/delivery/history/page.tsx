@@ -49,7 +49,7 @@ export default function DeliveryHistory() {
                             <div key={i} className='bg-white p-5 rounded-2xl border border-gray-100 shadow-sm'>
                                 <div className='flex justify-between items-start mb-3'>
                                     <div>
-                                        <p className='text-sm text-gray-500 font-medium'>Order #{order.id?.slice(-6) || order._id?.slice(-6)}</p>
+                                        <p className='text-sm text-gray-500 font-medium'>Order #{order.orderNumber || order.id?.slice(-6) || order._id?.slice(-6)}</p>
                                         <p className='text-xs text-gray-400 mt-0.5'>{new Date(order.deliveredAt).toLocaleString()}</p>
                                     </div>
                                     <span className='px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full'>Completed</span>

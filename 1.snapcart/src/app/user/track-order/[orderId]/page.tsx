@@ -1,14 +1,16 @@
 'use client'
-import LiveMap from '@/components/LiveMap'
 import { getSocket } from '@/lib/socket'
 import { RootState } from '@/redux/store'
 import axios from 'axios'
 import { ArrowLeft, Loader, Send, Sparkle } from 'lucide-react'
-
 import { useParams, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from "motion/react"
 import React, { useEffect, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+import dynamic from 'next/dynamic'
+
+const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false })
+
 interface IOrder {
   id?: string
   _id?: string
@@ -40,6 +42,7 @@ interface IOrder {
   assignment?: string
   assignedDeliveryBoy?: any
   status: "pending" | "out of delivery" | "delivered",
+  orderNumber?: number,
   createdAt?: Date
   updatedAt?: Date
 }
@@ -68,46 +71,75 @@ function TrackOrder({ params }: { params: { orderId: string } }) {
     longitude: 0
   })
 
+  const [eta, setEta] = useState("Calculating...")
+  const userDataRef = useRef(userData)
+  
+  useEffect(() => {
+    userDataRef.current = userData
+  }, [userData])
+
+  const fetchLiveLocation = async () => {
+    try {
+      const res = await axios.get(`/api/order/live-location/${orderId}`)
+      if (res.data.deliveryBoy) {
+        setDeliveryBoyLocation({
+          latitude: res.data.deliveryBoy.latitude,
+          longitude: res.data.deliveryBoy.longitude
+        })
+      }
+      if (res.data.customerLocation) {
+        setUserLocation({
+          latitude: res.data.customerLocation.latitude,
+          longitude: res.data.customerLocation.longitude
+        })
+      }
+      if (res.data.eta) setEta(res.data.eta)
+    } catch (error) {
+      console.error("Error fetching live location:", error)
+    }
+  }
+
   useEffect(() => {
     const getOrder = async () => {
       try {
         const result = await axios.get(`/api/user/get-order/${orderId}`)
         setOrder(result.data)
-        setUserLocation({
-          latitude: result.data.address.latitude,
-          longitude: result.data.address.longitude
-        })
-        setDeliveryBoyLocation({
-          latitude: result.data.assignedDeliveryBoy.location.coordinates[1],
-          longitude: result.data.assignedDeliveryBoy.location.coordinates[0]
-        })
+        // Initial setup
+        fetchLiveLocation()
       } catch (error) {
         console.log(error)
       }
     }
     getOrder()
-  }, [userData?._id])
+
+    // Setup polling for live location (every 5 seconds)
+    const interval = setInterval(fetchLiveLocation, 5000)
+    return () => clearInterval(interval)
+  }, [orderId])
 
   useEffect((): any => {
     const socket = getSocket()
     socket.on("update-deliveryBoy-location", (data) => {
-      console.log(location)
+      // Immediate socket fallback if active
       setDeliveryBoyLocation({
-        latitude: data.location.coordinates?.[1] ?? data.location.latitude,
-        longitude: data.location.coordinates?.[0] ?? data.location.longitude,
-
+        latitude: data.latitude,
+        longitude: data.longitude,
       })
-    }
-    )
+    })
     return () => socket.off("update-deliveryBoy-location")
-  }, [order])
+  }, [])
 
   useEffect(() => {
     const socket = getSocket()
     socket.emit("join-room", orderId)
     socket.on("send-message", (message) => {
-      if (message.roomId === orderId) {
-        setMessages((prev) => [...prev!, message])
+      const currentUserId = userDataRef.current?.id || userDataRef.current?._id;
+      if (message.roomId === orderId && message.senderId !== currentUserId) {
+        setMessages((prev) => {
+          // Prevent duplicates if already added optimistically
+          if (prev?.some(m => m.text === message.text && m.senderId === message.senderId)) return prev;
+          return [...(prev || []), message]
+        })
       }
     })
 
@@ -119,19 +151,23 @@ function TrackOrder({ params }: { params: { orderId: string } }) {
   }, [])
 
   const sendMsg = () => {
+    if (!newMessage.trim()) return
     const socket = getSocket()
 
     const message = {
       roomId: orderId,
-      text: newMessage,
-      senderId: userData?._id,
+      text: newMessage.trim(),
+      senderId: (userData?.id || userData?._id),
       time: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit"
       })
     }
+    
+    // Optimistic update
+    setMessages((prev) => [...(prev || []), { ...message, id: Date.now().toString() }])
+    
     socket.emit("send-message", message)
-
     setNewMessage("")
   }
   useEffect(() => {
@@ -157,7 +193,7 @@ function TrackOrder({ params }: { params: { orderId: string } }) {
     setLoading(true)
     try {
 
-      const lastMessage = messages?.filter(m => m.senderId.toString() !== userData?._id)?.at(-1)
+      const lastMessage = messages?.filter(m => m.senderId?.toString() !== (userData?.id || userData?._id))?.at(-1)
       const result = await axios.post("/api/chat/ai-suggestions", { message: lastMessage?.text, role: "user" })
       setSuggestions(result.data)
       setLoading(false)
@@ -174,7 +210,7 @@ function TrackOrder({ params }: { params: { orderId: string } }) {
           <button className='p-2 bg-green-100 rounded-full' onClick={() => router.back()}><ArrowLeft className="text-green-700" size={20} /></button>
           <div>
             <h2 className='text-xl font-bold'>Track Order</h2>
-            <p className='text-sm text-gray-600'>order#{order?._id?.toString().slice(-6)} <span className='text-green-700 font-semibold'>{order?.status}</span></p>
+            <p className='text-sm text-gray-600'>Order <span className='font-bold'>#{order?.orderNumber || order?._id?.toString().slice(-6)}</span> <span className='text-green-700 font-semibold'>{order?.status}</span> • <span className='text-blue-600 font-bold'>Arriving in {eta}</span></p>
           </div>
 
         </div>
@@ -212,15 +248,15 @@ function TrackOrder({ params }: { params: { orderId: string } }) {
               <AnimatePresence>
                 {messages?.map((msg, index) => (
                   <motion.div
-                    key={msg._id?.toString()}
+                    key={msg.id?.toString() || msg._id?.toString() || index}
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className={`flex ${msg.senderId.toString() == userData?._id ? "justify-end" : "justify-start"}`}
+                    className={`flex ${msg.senderId?.toString() == (userData?.id || userData?._id) ? "justify-end" : "justify-start"}`}
                   >
                     <div className={`px-4 py-2 max-w-[75%] rounded-2xl shadow 
-                  ${msg.senderId.toString() === userData?._id
+                  ${msg.senderId?.toString() === (userData?.id || userData?._id)
                         ? "bg-green-600 text-white rounded-br-none"
                         : "bg-gray-100 text-gray-800 rounded-bl-none"
                       }`}>

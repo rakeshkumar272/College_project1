@@ -22,9 +22,9 @@ const categories = [
 const units = ["kg", "g", "liter", "ml", "piece", "pack", "bunch", "dozen"]
 
 interface IVariant {
-    label: string;
+    weightInGrams: number;
     price: string | number;
-    stock: string | number;
+    stockQuantity: string | number;
 }
 
 function AddGrocery() {
@@ -36,10 +36,21 @@ function AddGrocery() {
     // Old base pricing fields (Kept for compatibility with backend parsing if needed, but driven via the primary variant UI logically)
     const [unit, setUnit] = useState("")
     const [price, setPrice] = useState("") // Primary base price reference
+
+    const [expiryDate, setExpiryDate] = useState("")
+    const [sortOrder, setSortOrder] = useState(0)
+    const [tags, setTags] = useState<string[]>([])
+
+    const availableTags = ["PRICE_DROP", "BESTSELLER", "GOURMET", "IMPORTED"]
+    
+    const handleTagToggle = (tag: string) => {
+        if (tags.includes(tag)) setTags(tags.filter(t => t !== tag))
+        else setTags([...tags, tag])
+    }
     
     // Variant Builder
     const [variants, setVariants] = useState<IVariant[]>([])
-    const [vLabel, setVLabel] = useState("")
+    const [vWeightInGrams, setVWeightInGrams] = useState("")
     const [vPrice, setVPrice] = useState("")
     const [vStock, setVStock] = useState("")
 
@@ -62,9 +73,13 @@ function AddGrocery() {
     }
 
     const addVariant = () => {
-        if (!vLabel || !vPrice) return;
-        setVariants([...variants, { label: vLabel, price: Number(vPrice), stock: Number(vStock) || 0 }])
-        setVLabel("")
+        if (!vWeightInGrams || !vPrice) return;
+        setVariants([...variants, { 
+            weightInGrams: Number(vWeightInGrams), 
+            price: Number(vPrice), 
+            stockQuantity: Number(vStock) || 0
+        }])
+        setVWeightInGrams("")
         setVPrice("")
         setVStock("")
     }
@@ -93,6 +108,9 @@ function AddGrocery() {
             formData.append("stockQuantity", stockQuantity)
             if (stockUnit) formData.append("stockUnit", stockUnit)
             formData.append("discountPercent", discountPercent.toString())
+            if (expiryDate) formData.append("expiryDate", expiryDate)
+            formData.append("tags", JSON.stringify(tags))
+            formData.append("sortOrder", sortOrder.toString())
             formData.append("variants", JSON.stringify(variants))
 
             if (backendImage) {
@@ -111,6 +129,9 @@ function AddGrocery() {
             setStockQuantity("")
             setStockUnit("")
             setDiscountPercent(0)
+            setExpiryDate("")
+            setSortOrder(0)
+            setTags([])
             setVariants([])
             setPreview(null)
             setBackendImage(null)
@@ -177,6 +198,31 @@ function AddGrocery() {
                                     className='w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-400 bg-gray-50/50 resize-none'
                                     onChange={(e) => setDescription(e.target.value)} value={description} />
                             </div>
+
+                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                <div>
+                                    <label className='block text-gray-700 font-medium mb-1.5 text-sm'>Expiry Date</label>
+                                    <input type="date" className='w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-400 bg-gray-50/50'
+                                        onChange={(e) => setExpiryDate(e.target.value)} value={expiryDate} />
+                                </div>
+                                <div>
+                                    <label className='block text-gray-700 font-medium mb-1.5 text-sm'>Sort Order</label>
+                                    <input type="number" placeholder='0' className='w-full border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-400 bg-gray-50/50'
+                                        onChange={(e) => setSortOrder(Number(e.target.value))} value={sortOrder || ""} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className='block text-gray-700 font-medium mb-1.5 text-sm'>Tags</label>
+                                <div className='flex flex-wrap gap-2'>
+                                    {availableTags.map(tag => (
+                                        <button key={tag} type="button" onClick={() => handleTagToggle(tag)}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${tags.includes(tag) ? 'bg-green-100 border-green-500 text-green-800' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                                            {tag.replace('_', ' ')}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
 
@@ -189,11 +235,11 @@ function AddGrocery() {
                         <p className='text-sm text-gray-500 mb-5'>Add available quantity packs (e.g. 250g, 500g, 1kg). Each product must have at least one variant.</p>
                         
                         <div className='bg-gray-50 rounded-xl p-4 border border-dashed border-gray-200 mb-5'>
-                            <div className='grid grid-cols-12 gap-3 items-end'>
+                            <div className='grid grid-cols-12 gap-3 items-end mb-3'>
                                 <div className='col-span-4'>
-                                    <label className='block text-gray-600 font-medium mb-1 text-xs'>Variant Label</label>
-                                    <input type="text" placeholder='e.g., 500g' className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400'
-                                        onChange={(e) => setVLabel(e.target.value)} value={vLabel} />
+                                    <label className='block text-gray-600 font-medium mb-1 text-xs'>Weight (grams)</label>
+                                    <input type="number" placeholder='e.g., 500' className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400'
+                                        onChange={(e) => setVWeightInGrams(e.target.value)} value={vWeightInGrams} />
                                 </div>
                                 <div className='col-span-3'>
                                     <label className='block text-gray-600 font-medium mb-1 text-xs'>Price (₹)</label>
@@ -216,20 +262,20 @@ function AddGrocery() {
                                 <table className='w-full text-left text-sm'>
                                     <thead className='bg-gray-50 text-gray-600 font-medium'>
                                         <tr>
-                                            <th className='py-3 px-4 w-1/3'>Label</th>
-                                            <th className='py-3 px-4'>Price</th>
-                                            <th className='py-3 px-4'>Stock</th>
-                                            <th className='py-3 px-4 text-right'>Action</th>
+                                                    <th className='py-2 px-3'>Weight (g)</th>
+                                            <th className='py-2 px-3'>Price</th>
+                                            <th className='py-2 px-3'>Stock Qty</th>
+                                            <th className='py-2 px-3 text-right'>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className='divide-y divide-gray-100'>
                                         <AnimatePresence>
                                             {variants.map((v, i) => (
                                                 <motion.tr initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} key={i} className='bg-white'>
-                                                    <td className='py-3 px-4 font-medium text-gray-800'>{v.label}</td>
-                                                    <td className='py-3 px-4 text-green-700 font-bold'>₹{v.price}</td>
-                                                    <td className='py-3 px-4 text-gray-600'>{v.stock}</td>
-                                                    <td className='py-3 px-4 text-right'>
+                                                    <td className='py-2 px-3 font-medium text-gray-800'>{v.weightInGrams}g</td>
+                                                    <td className='py-2 px-3 text-green-600 font-bold'>₹{v.price}</td>
+                                                    <td className='py-2 px-3 text-gray-600'>{v.stockQuantity}</td>
+                                                    <td className='py-2 px-3 text-right'>
                                                         <button type="button" onClick={() => removeVariant(i)} className='text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition'>
                                                             <Trash2 size={16} />
                                                         </button>

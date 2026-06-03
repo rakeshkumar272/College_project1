@@ -16,12 +16,20 @@ function DeliveryChat({ orderId, deliveryBoyId }: props) {
   const chatBoxRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState([])
+  const deliveryBoyIdRef = useRef(deliveryBoyId)
+
+  useEffect(() => {
+    deliveryBoyIdRef.current = deliveryBoyId
+  }, [deliveryBoyId])
   useEffect(() => {
     const socket = getSocket()
     socket.emit("join-room", orderId)
     socket.on("send-message", (message) => {
-      if (message.roomId === orderId) {
-        setMessages((prev) => [...prev!, message])
+      if (message.roomId === orderId && message.senderId !== deliveryBoyIdRef.current) {
+        setMessages((prev) => {
+          if (prev?.some(m => m.text === message.text && m.senderId === message.senderId)) return prev;
+          return [...(prev || []), message]
+        })
       }
 
     })
@@ -44,6 +52,7 @@ function DeliveryChat({ orderId, deliveryBoyId }: props) {
         minute: "2-digit"
       })
     }
+    setMessages((prev) => [...(prev || []), { ...message, id: Date.now().toString() }])
     socket.emit("send-message", message)
 
     setNewMessage("")
@@ -72,7 +81,7 @@ function DeliveryChat({ orderId, deliveryBoyId }: props) {
     setLoading(true)
     try {
 
-      const lastMessage = messages?.filter(m => m.senderId.toString() !== deliveryBoyId)?.at(-1)
+      const lastMessage = messages?.filter(m => m.senderId?.toString() !== deliveryBoyId)?.at(-1)
       const result = await axios.post("/api/chat/ai-suggestions", { message: lastMessage?.text, role: "delivery_boy" })
       setSuggestions(result.data)
       setLoading(false)
@@ -107,10 +116,10 @@ function DeliveryChat({ orderId, deliveryBoyId }: props) {
         <div className='text-center text-[10px] uppercase font-bold text-gray-400 my-2 tracking-widest'>Today</div>
         <AnimatePresence>
           {messages?.map((msg, index) => {
-            const isMe = msg.senderId.toString() == deliveryBoyId;
+            const isMe = msg.senderId?.toString() == deliveryBoyId;
             return (
               <motion.div
-                key={msg._id?.toString() || index}
+                key={msg.id?.toString() || msg._id?.toString() || index}
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}

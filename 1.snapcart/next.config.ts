@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
- images:{
+  reactStrictMode: false,
+  images:{
   remotePatterns:[
     {hostname:"lh3.googleusercontent.com"},
     {hostname:"plus.unsplash.com"},

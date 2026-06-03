@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json()
         const { userId, items, paymentMethod, totalAmount, address } = body
         if (!items || !userId || !paymentMethod || !totalAmount || !address) {
+            console.log("Missing fields in order checkout:", { items, userId, paymentMethod, totalAmount, address });
             return NextResponse.json(
                 { message: "please send all credentials" },
                 { status: 400 }
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
         }
         const user = await prisma.user.findUnique({ where: { id: userId } })
         if (!user) {
+            console.log("User not found:", userId);
             return NextResponse.json(
                 { message: "user not found" },
                 { status: 400 }
@@ -22,37 +24,81 @@ export async function POST(req: NextRequest) {
 
         // ENFORCE USER STATUS
         if (user.status === "RESTRICTED" || user.status === "BLOCKED") {
+            console.log("User restricted/blocked:", user.status);
             return NextResponse.json(
                 { message: "Your account is restricted from placing orders." },
                 { status: 403 }
             )
         }
 
-        const newOrder = await prisma.order.create({
-            data: {
-                userId: userId,
-                paymentMethod: paymentMethod,
-                totalAmount: totalAmount,
-                addressFullName: address.fullName,
-                addressMobile: address.mobile,
-                addressCity: address.city,
-                addressState: address.state,
-                addressPincode: address.pincode,
-                addressLatitude: Number(address.latitude),
-                addressLongitude: Number(address.longitude),
-                addressFullAddress: address.fullAddress,
-                items: {
-                    create: items.map((item: any) => ({
-                        groceryId: item.grocery,
-                        name: item.name,
-                        price: item.price.toString(),
-                        unit: item.unit.toString(),
-                        image: item.image,
-                        quantity: Number(item.quantity)
-                    }))
+        // STOCK VALIDATION
+        for (const item of items) {
+            if (item.variant) {
+                const variant = await prisma.groceryVariant.findUnique({ 
+                    where: { id: item.variant } 
+                });
+                if (!variant) {
+                    console.log("Variant not found:", item.variant, item.name);
+                    return NextResponse.json({ message: `Product variant not found: ${item.name}` }, { status: 400 });
+                }
+                if (variant.stockQuantity < item.quantity) {
+                    console.log("Not enough stock:", variant.stockQuantity, "requested:", item.quantity);
+                    return NextResponse.json({ 
+                        message: `Only ${variant.stockQuantity} items available for ${item.name} (${variant.label})` 
+                    }, { status: 400 });
                 }
             }
-        })
+        }
+
+        const newOrder = await prisma.$transaction(async (tx) => {
+            const order = await tx.order.create({
+                data: {
+                    userId: userId,
+                    paymentMethod: paymentMethod,
+                    totalAmount: totalAmount,
+                    addressFullName: address.fullName,
+                    addressMobile: address.mobile,
+                    addressCity: address.city,
+                    addressState: address.state,
+                    addressPincode: address.pincode,
+                    addressLatitude: Number(address.latitude),
+                    addressLongitude: Number(address.longitude),
+                    addressFullAddress: address.fullAddress,
+                    items: {
+                        create: items.map((item: any) => ({
+                            groceryId: item.productId || item.grocery,
+                            name: item.name,
+                            price: item.price.toString(),
+                            unit: item.unit.toString(),
+                            image: item.image,
+                            quantity: Number(item.quantity)
+                        }))
+                    }
+                }
+            });
+
+            // DEDUCT STOCK
+            for (const item of items) {
+                if (item.variant) {
+                    const variant = await tx.groceryVariant.findUnique({ where: { id: item.variant } });
+                    if (variant) {
+                        const newQty = variant.stockQuantity - Number(item.quantity);
+                        let newStatus: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
+                        if (newQty <= 0) newStatus = "OUT_OF_STOCK";
+                        else if (newQty <= 5) newStatus = "LOW_STOCK";
+
+                        await tx.groceryVariant.update({
+                            where: { id: item.variant },
+                            data: {
+                                stockQuantity: newQty,
+                                stockStatus: newStatus
+                            }
+                        });
+                    }
+                }
+            }
+            return order;
+        });
 
         // Natively search for nearby delivery boys & create assignment immediately
         const allDeliveryBoys = await prisma.user.findMany({

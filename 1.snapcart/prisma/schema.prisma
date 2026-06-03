@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Tag {
+  PRICE_DROP
+  BESTSELLER
+  GOURMET
+  IMPORTED
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}
+
+
 model User {
   id                  String               @id @default(cuid())
   name                String
@@ -20,6 +34,9 @@ model User {
   longitude           Float?
   socketId            String?
   isOnline            Boolean              @default(false)
+  totalOrders         Int                  @default(0)
+  totalSpent          Float                @default(0)
+  isTopBuyer          Boolean              @default(false)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -41,6 +58,12 @@ model Grocery {
   stockQuantity   Int?             @default(0)
   stockUnit       String?
   discountPercent Int?             @default(0)
+  expiryDate      DateTime?
+  stockArrivalDate DateTime?       @default(now())
+  freshnessScore  Int?             
+  recommendedProducts String?
+  tags            Tag[]
+  sortOrder       Int?             @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -54,14 +77,20 @@ model GroceryVariant {
   grocery   Grocery  @relation(fields: [groceryId], references: [id], onDelete: Cascade)
   label     String   // e.g., "250g", "500g", "1kg"
   weight    Float?   // Numeric weight value (e.g. 250, 500, 1)
+  weightInGrams Int? @default(0)
   price     Float
-  stock     Int      @default(0)
+  stockQuantity Int @default(0)
+  stockStatus   StockStatus @default(IN_STOCK)
+  baseQuantity Float?
+  baseUnit     String?
+  unitPriceDisplay String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Order {
   id                      String              @id @default(cuid())
+  orderNumber             Int                 @unique @default(autoincrement())
   userId                  String
   user                    User                @relation("UserOrders", fields: [userId], references: [id])
   paymentMethod           String              @default("cod") // "cod", "online"
@@ -93,13 +122,14 @@ model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id])
-  groceryId String
-  grocery   Grocery @relation(fields: [groceryId], references: [id])
+  groceryId String?
+  grocery   Grocery? @relation(fields: [groceryId], references: [id], onDelete: SetNull)
   name      String
   price     String
   unit      String
   image     String
   quantity  Int
+  reorderPredictionDate DateTime?
 }
 
 model Message {

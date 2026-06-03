@@ -64,25 +64,30 @@ export default function GrocyBot() {
                         </div>
 
                         {/* Messages */}
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 scroll-smooth">
                             {messages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    key={i} 
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm transition-all ${
                                         msg.role === 'user' 
                                         ? 'bg-green-600 text-white rounded-br-none' 
                                         : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
                                     }`}>
                                         {msg.text}
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                             {loading && (
-                                <div className="flex justify-start">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                                     <div className="bg-white border border-gray-100 p-3 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-2">
                                         <Loader2 size={16} className="animate-spin text-green-600" />
-                                        <span className="text-xs text-gray-400 font-medium tracking-tight">Thinking...</span>
+                                        <span className="text-xs text-gray-400 font-medium tracking-tight">GrocyBot is typing...</span>
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
                         </div>
 
@@ -90,17 +95,23 @@ export default function GrocyBot() {
                         <div className="p-4 bg-white border-t border-gray-100">
                             <div className="relative flex items-center gap-2">
                                 <input
+                                    autoFocus
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="Ask about your order..."
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSend();
+                                        }
+                                    }}
+                                    placeholder="Type a message..."
                                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 pl-4 pr-12 text-sm outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
                                 />
                                 <button
                                     onClick={handleSend}
                                     disabled={!input.trim() || loading}
-                                    className="absolute right-2 p-1.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+                                    className="absolute right-2 p-1.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 transition-all flex items-center justify-center"
                                 >
                                     <Send size={18} />
                                 </button>

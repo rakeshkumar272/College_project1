@@ -12,6 +12,7 @@ import prisma from '@/lib/db'
 
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
 
 
 async function Home(props: {
@@ -49,12 +50,13 @@ async function Home(props: {
             { name: { contains: searchParams.q, mode: 'insensitive' } },
             { category: { contains: searchParams.q, mode: 'insensitive' } },
           ]
-        }
+        },
+        include: { variants: true }
       })
     } else {
-      groceryList = await prisma.grocery.findMany()
-
-
+      groceryList = await prisma.grocery.findMany({
+        include: { variants: true }
+      })
     }
   }
 

@@ -21,6 +21,15 @@ export async function POST(req: NextRequest) {
         const stockQuantity = formData.get("stockQuantity") ? parseInt(formData.get("stockQuantity") as string) : 0
         const stockUnit = formData.get("stockUnit") as string | null
         const discountPercent = formData.get("discountPercent") ? parseInt(formData.get("discountPercent") as string) : 0
+        const expiryDateStr = formData.get("expiryDate") as string | null
+        const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null
+        const tagsString = formData.get("tags") as string | null
+        let tags: any[] = []
+        if (tagsString) {
+            try { tags = JSON.parse(tagsString) } catch (e) { }
+        }
+        const sortOrder = formData.get("sortOrder") ? parseInt(formData.get("sortOrder") as string) : 0
+
         const variantsString = formData.get("variants") as string | null
         let variants = []
         if (variantsString) {
@@ -43,17 +52,29 @@ export async function POST(req: NextRequest) {
                 description,
                 stockQuantity,
                 stockUnit,
-                discountPercent
+                discountPercent,
+                expiryDate,
+                tags,
+                sortOrder
             }
         })
 
         if (variants && variants.length > 0) {
-            const variantData = variants.map((v: any) => ({
-                groceryId: grocery.id,
-                label: v.label,
-                price: Number(v.price),
-                stock: Number(v.stock) || 0
-            }))
+            const variantData = variants.map((v: any) => {
+                const qty = Number(v.stockQuantity || v.stock || 0);
+                let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
+                if (qty <= 0) status = "OUT_OF_STOCK";
+                else if (qty <= 5) status = "LOW_STOCK";
+
+                return {
+                    groceryId: grocery.id,
+                    weightInGrams: v.weightInGrams ? Number(v.weightInGrams) : 0,
+                    label: v.weightInGrams ? `${v.weightInGrams}g` : "", // Fallback
+                    price: Number(v.price),
+                    stockQuantity: qty,
+                    stockStatus: status
+                };
+            })
 
             await prisma.groceryVariant.createMany({
                 data: variantData

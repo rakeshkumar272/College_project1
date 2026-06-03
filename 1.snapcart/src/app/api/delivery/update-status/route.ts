@@ -45,6 +45,24 @@ export async function POST(req: NextRequest) {
 
         await emitEventHandler("order-status-update", { orderId: order.id, status });
 
+        if (status === "delivered" && order.userId) {
+            const user = await prisma.user.findUnique({ where: { id: order.userId } })
+            if (user) {
+                const newTotalOrders = (user.totalOrders || 0) + 1;
+                const newTotalSpent = (user.totalSpent || 0) + order.totalAmount;
+                const isTopBuyer = newTotalOrders > 10 || newTotalSpent > 5000;
+                
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        totalOrders: newTotalOrders,
+                        totalSpent: newTotalSpent,
+                        isTopBuyer
+                    }
+                })
+            }
+        }
+
         return NextResponse.json({ message: "Status updated successfully", status: updatedOrder.status }, { status: 200 });
 
     } catch (error) {

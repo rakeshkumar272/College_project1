@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Users, Truck, BarChart3, Settings, X, ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Truck, BarChart3, Settings, X, ChevronLeft, ChevronRight, PackageSearch, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function AdminSidebar({
@@ -24,8 +24,10 @@ export default function AdminSidebar({
         { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
         { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
         { name: 'Products', href: '/admin/products', icon: PackageSearch },
+        { name: 'Stock', href: '/admin/stock', icon: Package },
         { name: 'Customers', href: '/admin/customers', icon: Users },
         { name: 'Deliveries', href: '/admin/deliveries', icon: Truck },
+        { name: 'Agents', href: '/admin/agents', icon: Users },
         { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
         { name: 'Settings', href: '/admin/settings', icon: Settings },
     ];
